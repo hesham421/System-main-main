@@ -78,64 +78,6 @@ export interface EligibleParentAccountDto {
   isActive: boolean;
 }
 
-// ── Accounting Rules ───────────────────────────────────────────
-
-export interface AccRuleHdrDto {
-  ruleId: number;
-  companyIdFk: number;
-  companyName: string;
-  sourceModule: string;
-  sourceDocType: string;
-  isActive: boolean;
-  lineCount: number;
-  lines?: AccRuleLineDto[];
-  createdAt?: string;
-  createdBy?: string;
-  updatedAt?: string | null;
-  updatedBy?: string | null;
-}
-
-export interface AccRuleLineDto {
-  ruleLineId: number;
-  accountIdFk: number;
-  accountCode: string;
-  accountName: string;
-  entrySide: string;
-  priority: number;
-  amountSourceType: string;
-  amountSourceValue: number | null;
-  paymentTypeCode: string | null;
-  entityType: string | null;
-}
-
-export interface CreateRuleRequest {
-  companyId: number;
-  sourceUnit: string;
-  documentType: string;
-  isActive?: boolean;
-  debitLines: RuleLineRequest[];
-  creditLines: RuleLineRequest[];
-}
-
-export interface UpdateRuleRequest {
-  companyId: number;
-  sourceUnit: string;
-  documentType: string;
-  isActive?: boolean;
-  debitLines: RuleLineRequest[];
-  creditLines: RuleLineRequest[];
-}
-
-export interface RuleLineRequest {
-  accountIdFk: number;
-  entrySide: string;
-  priority: number;
-  amountSourceType: string;
-  amountSourceValue?: number | null;
-  paymentTypeCode?: string | null;
-  entityType?: string | null;
-}
-
 // ── Search Filters ─────────────────────────────────────────────
 
 export type FilterOperator = 'EQ' | 'NE' | 'GT' | 'GE' | 'LT' | 'LE' | 'LIKE' | 'IN' | 'IS_NULL' | 'IS_NOT_NULL' | 'BETWEEN';
@@ -186,12 +128,6 @@ export interface ContractFilter {
  */
 export const GL_LOOKUP_KEYS = {
   ACCOUNT_TYPE: 'GL_ACCOUNT_TYPE',
-  SOURCE_MODULE: 'SOURCE_MODULE',
-  SOURCE_DOC_TYPE: 'SOURCE_DOC_TYPE',
-  ENTRY_SIDE: 'ENTRY_SIDE',
-  AMOUNT_SOURCE_TYPE: 'AMOUNT_SOURCE_TYPE',
-  ENTITY_TYPE: 'ENTITY_TYPE',
-  PAYMENT_TYPE: 'PAYMENT_TYPE',
   GL_ACCOUNT_STATUS: 'GL_ACCOUNT_STATUS',
   GL_POSTING_FLAG: 'GL_POSTING_FLAG'
 } as const;

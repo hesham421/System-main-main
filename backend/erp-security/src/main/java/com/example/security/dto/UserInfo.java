@@ -14,31 +14,28 @@ import java.util.Set;
 public record UserInfo(
     @Schema(description = "JWT access token for API authentication")
     String accessToken,
-    
+
     @Schema(description = "Access token expiration time in seconds", example = "900")
     Long expiresIn,
-    
+
     @Schema(description = "Refresh token for obtaining new access tokens")
     String refreshToken,
-    
+
     @Schema(description = "Refresh token expiration time in seconds", example = "604800")
     Long refreshExpiresIn,
-    
+
     @Schema(description = "User ID")
     Long userId,
-    
+
     @Schema(description = "Username")
     String username,
-    
-    @Schema(description = "Tenant ID")
-    String tenantId,
-    
+
     @Schema(description = "Whether the user account is enabled")
     boolean enabled,
-    
+
     @Schema(description = "User's assigned roles")
     Set<String> roles,
-    
+
     @Schema(description = "User's permissions (flattened from all roles)")
     Set<String> permissions
 ) {
@@ -53,7 +50,6 @@ public record UserInfo(
             refreshExpiresIn,
             user.id(),
             user.username(),
-            user.tenantId(),
             user.enabled(),
             user.roles(),
             user.permissions()

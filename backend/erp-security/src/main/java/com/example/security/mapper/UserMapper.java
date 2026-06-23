@@ -1,8 +1,8 @@
 package com.example.security.mapper;
 
-import com.example.security.domain.Permission;
-import com.example.security.domain.Role;
-import com.example.security.domain.UserAccount;
+import com.example.security.entity.Permission;
+import com.example.security.entity.Role;
+import com.example.security.entity.UserAccount;
 import com.example.security.dto.UserDto;
 
 import java.util.Set;
@@ -18,7 +18,7 @@ public final class UserMapper {
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
         return new UserDto(
-                u.getId(), u.getUsername(), u.getTenantId(), u.isEnabled(), roles, perms,
+                u.getId(), u.getUsername(), u.isEnabled(), roles, perms,
                 u.getCreatedAt(), u.getCreatedBy(), u.getUpdatedAt(), u.getUpdatedBy());
     }
 }

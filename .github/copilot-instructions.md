@@ -10,29 +10,26 @@ When creating or modifying backend artifacts, read the matching skill BEFORE wri
 
 | Task | Skill to Read |
 |------|--------------|
-| **ALWAYS FIRST — planning a new feature/entity** | `.github/skills/backend/assess-erp-module/SKILL.md` |
+| **ALWAYS FIRST — validate contracts before starting** | `.github/skills/backend/enforce-backend-contract/SKILL.md` |
 | Creating/modifying an Entity | `.github/skills/backend/create-entity/SKILL.md` |
 | Creating/modifying a Repository | `.github/skills/backend/create-repository/SKILL.md` |
 | Creating/modifying DTOs | `.github/skills/backend/create-dto/SKILL.md` |
 | Creating/modifying a Mapper | `.github/skills/backend/create-mapper/SKILL.md` |
 | Creating/modifying a Service | `.github/skills/backend/create-service/SKILL.md` |
 | Creating/modifying a Controller | `.github/skills/backend/create-controller/SKILL.md` |
-| Writing/reviewing unit tests | `.github/skills/backend/create-unit-tests/SKILL.md` |
 | Reviewing/validating backend code | `.github/skills/backend/enforce-backend-contract/SKILL.md` |
 | Adding/reviewing caching | `.github/skills/backend/enforce-caching-rules/SKILL.md` |
 | Adding/reviewing error handling | `.github/skills/backend/enforce-error-handling/SKILL.md` |
-| Reviewing query/pagination performance | `.github/skills/backend/enforce-performance/SKILL.md` |
-| Reviewing clean code (DRY/KISS/YAGNI/null safety) | `.github/skills/backend/enforce-clean-code/SKILL.md` |
-| Upgrading Spring Boot / Java version | `.github/skills/backend/springboot-upgrade/SKILL.md` |
 | Validating a complete feature | `.github/skills/backend/validate-backend-feature/SKILL.md` |
 
 ### Frontend Tasks (any work under `frontend/`)
+
+> **Angular/Skills Compatibility:** Each frontend skill's own ANGULAR/SKILLS COMPATIBILITY section governs precedence between ERP rules and angular/skills guidance — no separate override file. ERP rules always take precedence.
 
 When creating or modifying frontend artifacts, read the matching skill BEFORE writing code:
 
 | Task | Skill to Read |
 |------|--------------|
-| **ALWAYS LOAD FIRST — conflict resolution** | `.github/skills/frontend/erp-priority-override/SKILL.md` |
 | Creating/modifying models/DTOs | `.github/skills/frontend/create-models/SKILL.md` |
 | Creating/modifying API service | `.github/skills/frontend/create-api-service/SKILL.md` |
 | Creating/modifying a Facade | `.github/skills/frontend/create-facade/SKILL.md` |
@@ -45,11 +42,6 @@ When creating or modifying frontend artifacts, read the matching skill BEFORE wr
 | Reviewing permissions | `.github/skills/frontend/enforce-permissions/SKILL.md` |
 | Reviewing state management | `.github/skills/frontend/enforce-state-management/SKILL.md` |
 | Validating a complete feature | `.github/skills/frontend/validate-frontend-feature/SKILL.md` |
-| Writing/reviewing Angular Signals | `.github/skills/frontend/angular-signals/SKILL.md` |
-| Adding animations / transitions | `.github/skills/frontend/angular-animations/SKILL.md` |
-| Adding ARIA / accessibility | `.github/skills/frontend/angular-aria/SKILL.md` |
-| Building presentational components (signal API) | `.github/skills/frontend/angular-component-api/SKILL.md` |
-| Creating/reviewing custom directives | `.github/skills/frontend/angular-directives/SKILL.md` |
 
 ### DevOps Tasks (any work under `deploy/`)
 
@@ -66,7 +58,7 @@ When creating or modifying deployment artifacts, read the matching skill BEFORE 
 
 ### Backend Feature Implementation (STRICT order)
 ```
-0. Assessment      → read assess-erp-module/SKILL.md  ← ALWAYS FIRST
+0. Pre-check       → read enforce-backend-contract/SKILL.md  ← ALWAYS FIRST
 1. Entity          → read create-entity/SKILL.md
 2. Repository      → read create-repository/SKILL.md
 3. DTOs            → read create-dto/SKILL.md
@@ -75,21 +67,17 @@ When creating or modifying deployment artifacts, read the matching skill BEFORE 
 6. Permissions     → (defined in SecurityPermissions.java)
 7. Service         → read create-service/SKILL.md
 8. Controller      → read create-controller/SKILL.md
-9. Unit Tests      → read create-unit-tests/SKILL.md
 ```
 
 ### Frontend Feature Implementation (STRICT order)
 ```
-0. Priority Override → read erp-priority-override/SKILL.md  ← ALWAYS FIRST
-1. Models            → read create-models/SKILL.md
-2. API Service       → read create-api-service/SKILL.md
-3. Facade            → read create-facade/SKILL.md           + angular-signals/SKILL.md
-4. Routing           → read create-routing/SKILL.md
-5. Components        → read create-components/SKILL.md       + angular-component-api/SKILL.md
-                                                             + angular-animations/SKILL.md (if motion needed)
-                                                             + angular-aria/SKILL.md (all interactive components)
-                                                             + angular-directives/SKILL.md (if custom directives needed)
-6. Validation        → read validate-frontend-feature/SKILL.md
+0. Compatibility   → read each skill's ANGULAR/SKILLS COMPATIBILITY section  ← ALWAYS FIRST
+1. Models          → read create-models/SKILL.md
+2. API Service     → read create-api-service/SKILL.md
+3. Facade          → read create-facade/SKILL.md
+4. Routing         → read create-routing/SKILL.md
+5. Components      → read create-components/SKILL.md
+6. Validation      → read validate-frontend-feature/SKILL.md
 ```
 
 ### Deployment (run AFTER backend + frontend are complete)

@@ -1,6 +1,6 @@
 package com.example.security.mapper;
 
-import com.example.security.domain.Role;
+import com.example.security.entity.Role;
 import com.example.security.dto.RoleDto;
 import lombok.experimental.UtilityClass;
 

@@ -154,9 +154,9 @@ The UI is for **end users**, not developers. No database internals, raw codes, o
 | UX.10.2 | Dark mode toggle works reactively | `ThemeService.toggleDarkMode()` toggles `body.mantis-dark` via effect — no manual DOM in component | Component adds/removes `mantis-dark` class directly |
 | UX.10.3 | Theme color change works reactively | `ThemeService.setThemeColor(preset)` updates `body[part]` via effect | Component manipulates `body.part` directly |
 | UX.10.4 | Card header actions use flexbox | `.card-header-right` uses `display: flex` — NOT `position: absolute` | Absolute positioning breaks RTL overlap |
-| UX.10.5 | No `::ng-deep` for card-header-right | Component SCSS does NOT override `.card-header-right` positioning via `::ng-deep` | `::ng-deep { .card-header-right { position: absolute; ... } }` |
-| UX.10.6 | Navigation text is translated | All text in `nav-right` and `nav-content` uses `\| translate` pipe | Hardcoded "Notification", "Logout", "Profile" |
-| UX.10.7 | User role is dynamic | User role display uses `authenticationService.currentUserValue?.roles?.[0]` — not hardcoded | Hardcoded "UI/UX Designer" |
+| UX.10.5 | No `::ng-deep` for card-header-right | See enforce-design-system DS.18–DS.20 | See enforce-design-system DS.18–DS.20 |
+| UX.10.6 | Navigation text is translated | See enforce-design-system DS.18–DS.20 | See enforce-design-system DS.18–DS.20 |
+| UX.10.7 | User role is dynamic | See enforce-design-system Arabic font rule | See enforce-design-system Arabic font rule |
 | UX.10.8 | Arabic font is Droid Arabic Naskh | `[lang="ar"]` uses Droid Arabic Naskh from `font-family.scss` — no conflicting font rules | Duplicate `[lang="ar"]` font-family in `styles.scss` |
 
 ---
@@ -352,7 +352,7 @@ List of frontend feature files to validate (components, templates, grid configs,
 
 ### Process
 1. **Scan templates and grid configs** for raw data bindings
-2. **Check all 46 rules** across 9 layers
+2. **Check all 54 rules** across 10 layers
 3. **Verify display model mapping** — ensure no raw DTO field reaches the template without transformation
 4. **Check feedback patterns** — loading, success, error on every action
 5. **Check column readability** — flex/minWidth, tooltip on truncation, resizable
@@ -376,8 +376,9 @@ LAYER 6: LAYOUT & CONSISTENCY        [X/5 PASS]
 LAYER 7: COLUMN READABILITY & SIZING [X/5 PASS]
 LAYER 8: TOOLTIP & TRUNCATION        [X/4 PASS]
 LAYER 9: BILINGUAL / I18N            [X/6 PASS]
+LAYER 10: THEME & LAYOUT UX          [X/8 PASS]
 
-TOTAL: XX/46 CHECKS PASSED
+TOTAL: XX/54 CHECKS PASSED
 
 AUTOMATIC REJECTION: YES/NO
 VIOLATIONS: [list of failed checks with file locations]

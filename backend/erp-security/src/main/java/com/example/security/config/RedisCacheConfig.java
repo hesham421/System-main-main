@@ -32,9 +32,8 @@ import java.util.Map;
  *   - No infinite caches allowed
  *   - TTL values based on data volatility
  * 
- * Rule 16.2: Cache Keys Must Include Tenant ID
- *   - All @Cacheable annotations use tenant-aware keys
- *   - Format: "tenantId:key" or dynamically via TenantContext
+ * Rule 16.2: Cache Keys Must Be Stable
+ *   - All @Cacheable annotations use deterministic keys
  * 
  * Rule 16.3: Cache Eviction on Updates
  *   - All update/delete operations use @CacheEvict

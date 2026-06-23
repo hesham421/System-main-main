@@ -149,10 +149,10 @@ Before applying checks, classify any candidate extraction:
 
 | # | Check | Pass Criteria | Violation |
 |---|-------|--------------|-----------|
-| RE.9.1 | Theme state via ThemeService | All theme switching uses `ThemeService` methods (`setThemeColor`, `toggleDarkMode`, `toggleContainerMode`) — not direct DOM | Component adds `mantis-dark` class or `body.part` directly |
-| RE.9.2 | No duplicate card positioning | Card header layout handled by global `card.scss` flexbox — no per-component `::ng-deep` overrides | `::ng-deep { .card-header-right { position: absolute } }` copied across components |
+| RE.9.1 | Theme state via ThemeService | See enforce-design-system ThemeService rules | See enforce-design-system ThemeService rules |
+| RE.9.2 | No duplicate card positioning | See enforce-design-system DS.18–DS.19 | See enforce-design-system DS.18–DS.19 |
 | RE.9.3 | Navigation i18n via translate pipe | All nav text uses `\| translate` — not hardcoded strings per navigation component | Hardcoded "Notification", "Logout" in nav templates |
-| RE.9.4 | Arabic font via font-family.scss only | Single source of truth for `[lang="ar"]` font in `font-family.scss` | Duplicate `[lang="ar"] { font-family: ... }` in `styles.scss` or component SCSS |
+| RE.9.4 | Arabic font via font-family.scss only | See enforce-design-system Arabic font rule | See enforce-design-system Arabic font rule |
 | RE.9.5 | Theme localStorage via ThemeService only | Theme preferences stored/loaded only through `ThemeService` — no direct `localStorage` in components for theme keys | `localStorage.getItem('erp_theme_color')` in a component |
 
 ---
@@ -400,7 +400,7 @@ List of frontend feature files to validate (components, services, grid configs, 
 1. **Inventory shared layer** — scan `shared/`, `core/`, `shared/ag-grid/` for existing utilities
 2. **Scan feature modules** — identify all utilities, helpers, formatters, and patterns in feature code
 3. **Detect duplication** — compare feature code against shared layer and against other features
-4. **Check all 37 rules** across 8 layers
+4. **Check all 42 rules** across 9 layers
 5. **Flag extraction candidates** — classify as UTIL / SHARED COMPONENT / SHARED SERVICE / BASE CLASS / AG GRID HELPER
 6. **Check automatic rejection triggers** — if any triggered, REJECT immediately
 7. **Generate report** with pass/fail per check and extraction recommendations
@@ -420,8 +420,9 @@ LAYER 5: CONFIRMATION & ACTIONS       [X/5 PASS]
 LAYER 6: COMPONENT & TEMPLATE REUSE   [X/5 PASS]
 LAYER 7: FORMMAPPER & MODEL PATTERNS  [X/4 PASS]
 LAYER 8: CROSS-CUTTING INFRASTRUCTURE [X/4 PASS]
+LAYER 9: THEME & LAYOUT REUSE        [X/5 PASS]
 
-TOTAL: XX/37 CHECKS PASSED
+TOTAL: XX/42 CHECKS PASSED
 
 AUTOMATIC REJECTION: YES/NO
 VIOLATIONS: [list of failed checks with file locations]

@@ -6,11 +6,8 @@ import { GlApiService } from 'src/app/modules/finance/gl/services/gl-api.service
 import {
   AccountChartDto,
   AccountChartTreeNode,
-  AccRuleHdrDto,
   CreateAccountRequest,
   UpdateAccountRequest,
-  CreateRuleRequest,
-  UpdateRuleRequest,
   EligibleParentAccountDto,
   SearchFilter,
   SearchRequest,
@@ -26,7 +23,6 @@ import { extractBackendErrorCode, extractBackendErrorMessage } from 'src/app/sha
  * Manages:
  * - Loading / error / saving state via signals
  * - Chart of accounts CRUD + tree
- * - Accounting rules CRUD
  * - Error mapping through ErpErrorMapperService
  *
  * @requirement FE-REQ-GL-001
@@ -53,7 +49,6 @@ export class GlFacade {
   private readonly eligibleParentsTotalSignal = signal<number>(0);
 
   // Accounts pagination + filters
-  /** Single source of truth for the last accounts search request. */
   private readonly lastAccountSearchRequestSignal = signal<SearchRequest>({
     filters: [],
     sorts: [],
@@ -61,23 +56,6 @@ export class GlFacade {
     size: 20
   });
   private readonly accountFiltersSignal = signal<SearchFilter[]>([]);
-
-  // ── Rules state ───────────────────────────────────────────
-
-  private readonly rulesSignal = signal<AccRuleHdrDto[]>([]);
-  private readonly rulesTotalSignal = signal<number>(0);
-  private readonly rulesLoadingSignal = signal<boolean>(false);
-  private readonly rulesErrorSignal = signal<string | null>(null);
-
-  // Rules pagination + filters
-  /** Single source of truth for the last rules search request. */
-  private readonly lastRuleSearchRequestSignal = signal<SearchRequest>({
-    filters: [],
-    sorts: [{ field: 'ruleId', direction: 'DESC' }],
-    page: 0,
-    size: 20
-  });
-  private readonly ruleFiltersSignal = signal<SearchFilter[]>([]);
 
   // ── Shared operation state ────────────────────────────────
 
@@ -101,14 +79,6 @@ export class GlFacade {
   readonly accountCurrentPage = computed(() => this.lastAccountSearchRequestSignal().page);
   readonly accountPageSize = computed(() => this.lastAccountSearchRequestSignal().size);
 
-  readonly rules = computed(() => this.rulesSignal());
-  readonly rulesTotal = computed(() => this.rulesTotalSignal());
-  readonly rulesLoading = computed(() => this.rulesLoadingSignal());
-  readonly rulesError = computed(() => this.rulesErrorSignal());
-  readonly ruleFilters = computed(() => this.ruleFiltersSignal());
-  readonly ruleCurrentPage = computed(() => this.lastRuleSearchRequestSignal().page);
-  readonly rulePageSize = computed(() => this.lastRuleSearchRequestSignal().size);
-
   readonly saving = computed(() => this.savingSignal());
   readonly saveError = computed(() => this.saveErrorSignal());
 
@@ -120,10 +90,6 @@ export class GlFacade {
     this.executeAccountSearch(this.lastAccountSearchRequestSignal());
   }
 
-  /**
-   * Execute an accounts search request against the API.
-   * Stores the request as the last search request for future reloads.
-   */
   private executeAccountSearch(request: SearchRequest): void {
     this.lastAccountSearchRequestSignal.set(request);
     this.accountsLoadingSignal.set(true);
@@ -248,10 +214,6 @@ export class GlFacade {
     ).subscribe();
   }
 
-  /**
-   * Load eligible parent accounts for the LOV (erp-dual-list).
-   * Excludes the given account and its descendants to prevent circular references.
-   */
   loadEligibleParents(organizationFk: number, excludeAccountPk?: number, search?: string,
                       page: number = 0, size: number = 100): void {
     this.eligibleParentsLoadingSignal.set(true);
@@ -278,10 +240,6 @@ export class GlFacade {
 
   // ── Inline tree CRUD helpers ──────────────────────────────
 
-  /**
-   * Create account and insert the new node into the tree signal in-place.
-   * If parentPk is provided, inserts under that parent; otherwise adds as root.
-   */
   createAccountInTree(
     request: CreateAccountRequest,
     organizationFk?: number,
@@ -293,7 +251,6 @@ export class GlFacade {
 
     this.api.createAccount(request).pipe(
       tap((created) => {
-        // Reload the full tree to get correct structure from backend
         this.loadAccountTree(organizationFk, accountType);
         onSuccess?.(created);
       }),
@@ -306,9 +263,6 @@ export class GlFacade {
     ).subscribe();
   }
 
-  /**
-   * Update account and refresh the tree to reflect changes.
-   */
   updateAccountInTree(
     pk: number,
     request: UpdateAccountRequest,
@@ -333,9 +287,6 @@ export class GlFacade {
     ).subscribe();
   }
 
-  /**
-   * Deactivate account and refresh the tree.
-   */
   deactivateAccountInTree(
     pk: number,
     organizationFk?: number,
@@ -359,10 +310,6 @@ export class GlFacade {
     ).subscribe();
   }
 
-  /**
-   * Toggle account active/inactive status via update (no delete).
-   * Uses PUT to set isActive flag, then refreshes tree.
-   */
   toggleAccountStatusInTree(
     pk: number,
     request: UpdateAccountRequest,
@@ -411,162 +358,13 @@ export class GlFacade {
     this.lastAccountSearchRequestSignal.update(r => ({ ...r, filters: contractFilters, page: 0 }));
   }
 
-  // ══════════════════════════════════════════════════════════
-  // ACCOUNTING RULES
-  // ══════════════════════════════════════════════════════════
-
-  loadRules(): void {
-    this.executeRuleSearch(this.lastRuleSearchRequestSignal());
-  }
-
-  private normalizeRuleSortField(field?: string | null): string {
-    return !field || field === 'id' ? 'ruleId' : field;
-  }
-
-  /**
-   * Execute a rules search request against the API.
-   * Stores the request as the last search request for future reloads.
-   */
-  private executeRuleSearch(request: SearchRequest): void {
-    const normalizedSorts = request.sorts?.length
-      ? request.sorts.map((sort) => ({
-          ...sort,
-          field: this.normalizeRuleSortField(sort.field)
-        }))
-      : [{ field: 'ruleId', direction: 'DESC' as const }];
-
-    const normalizedRequest: SearchRequest = {
-      ...request,
-      sorts: normalizedSorts
-    };
-
-    this.lastRuleSearchRequestSignal.set(normalizedRequest);
-    this.rulesLoadingSignal.set(true);
-    this.rulesErrorSignal.set(null);
-
-    this.api
-      .searchRules(normalizedRequest)
-      .pipe(
-        tap((response) => {
-          this.rulesSignal.set(response?.content ?? []);
-          this.rulesTotalSignal.set(response?.totalElements ?? 0);
-        }),
-        catchError((error) => {
-          this.rulesErrorSignal.set(this.mapError(error));
-          this.rulesSignal.set([]);
-          this.rulesTotalSignal.set(0);
-          return EMPTY;
-        }),
-        finalize(() => this.rulesLoadingSignal.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe();
-  }
-
-  getRuleById(ruleId: number, onSuccess?: (rule: AccRuleHdrDto) => void): void {
-    this.rulesLoadingSignal.set(true);
-    this.rulesErrorSignal.set(null);
-
-    this.api.getRuleById(ruleId).pipe(
-      tap((rule) => onSuccess?.(rule)),
-      catchError((error) => {
-        this.rulesErrorSignal.set(this.mapError(error));
-        return EMPTY;
-      }),
-      finalize(() => this.rulesLoadingSignal.set(false)),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe();
-  }
-
-  createRule(request: CreateRuleRequest, onSuccess?: () => void): void {
-    this.savingSignal.set(true);
-    this.saveErrorSignal.set(null);
-
-    this.api.createRule(request).pipe(
-      tap(() => {
-        this.loadRules();
-        onSuccess?.();
-      }),
-      catchError((error) => {
-        this.saveErrorSignal.set(this.mapError(error));
-        return EMPTY;
-      }),
-      finalize(() => this.savingSignal.set(false)),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe();
-  }
-
-  updateRule(ruleId: number, request: UpdateRuleRequest, onSuccess?: () => void): void {
-    this.savingSignal.set(true);
-    this.saveErrorSignal.set(null);
-
-    this.api.updateRule(ruleId, request).pipe(
-      tap(() => {
-        this.loadRules();
-        onSuccess?.();
-      }),
-      catchError((error) => {
-        this.saveErrorSignal.set(this.mapError(error));
-        return EMPTY;
-      }),
-      finalize(() => this.savingSignal.set(false)),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe();
-  }
-
-  deactivateRule(ruleId: number, onSuccess?: () => void): void {
-    this.savingSignal.set(true);
-    this.saveErrorSignal.set(null);
-
-    this.api.deactivateRule(ruleId).pipe(
-      tap(() => {
-        this.loadRules();
-        onSuccess?.();
-      }),
-      catchError((error) => {
-        this.saveErrorSignal.set(this.mapError(error));
-        return EMPTY;
-      }),
-      finalize(() => this.savingSignal.set(false)),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe();
-  }
-
-  applyRuleGridStateAndLoad(state: {
-    page: number;
-    size: number;
-    sortBy: string;
-    sortDir: string;
-    filters: SearchFilter[];
-  }): void {
-    const sortField = this.normalizeRuleSortField(state.sortBy);
-
-    this.ruleFiltersSignal.set(state.filters);
-    const contractFilters = this.toContractFilters(state.filters);
-    const request: SearchRequest = {
-      filters: contractFilters,
-      sorts: [{ field: sortField, direction: state.sortDir as 'ASC' | 'DESC' }],
-      page: state.page,
-      size: state.size
-    };
-    this.executeRuleSearch(request);
-  }
-
-  setRuleFilters(filters: SearchFilter[]): void {
-    this.ruleFiltersSignal.set(filters);
-    const contractFilters = this.toContractFilters(filters);
-    this.lastRuleSearchRequestSignal.update(r => ({ ...r, filters: contractFilters, page: 0 }));
-  }
-
   // ── Error helpers ─────────────────────────────────────────
 
   clearError(): void {
     this.accountsErrorSignal.set(null);
-    this.rulesErrorSignal.set(null);
     this.saveErrorSignal.set(null);
   }
 
-  /** Clear transient entity state when leaving an entry page. */
   clearCurrentEntity(): void {
     this.accountsSignal.set([]);
     this.accountsTotalSignal.set(0);
@@ -574,12 +372,9 @@ export class GlFacade {
     this.accountSubTreeSignal.set(null);
     this.eligibleParentsSignal.set([]);
     this.eligibleParentsTotalSignal.set(0);
-    this.rulesSignal.set([]);
-    this.rulesTotalSignal.set(0);
     this.clearError();
   }
 
-  /** Convert domain SearchFilter[] to backend ContractFilter[] format. */
   private toContractFilters(filters: SearchFilter[]): ContractFilter[] {
     const result: ContractFilter[] = [];
     for (const f of filters) {
@@ -599,8 +394,6 @@ export class GlFacade {
     if (backendCode && this.errorMapper.hasMapping(backendCode)) {
       return this.errorMapper.mapError(backendCode).translationKey;
     }
-    // Fallback: use the backend's localized message directly
-    // (backend LocalizationService already resolves i18n messages)
     const backendMessage = extractBackendErrorMessage(error);
     if (backendMessage) {
       return backendMessage;

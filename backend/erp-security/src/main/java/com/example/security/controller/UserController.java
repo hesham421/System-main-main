@@ -4,7 +4,7 @@ import com.example.erp.common.web.ApiResponse;
 import com.example.erp.common.web.OperationCode;
 import com.example.security.dto.UserSearchContractRequest;
 import com.example.security.constants.SecurityPermissions;
-import com.example.security.domain.Role;
+import com.example.security.entity.Role;
 import com.example.security.dto.AssignRolesRequest;
 import com.example.security.dto.CreateUserRequest;
 import com.example.security.dto.UpdateUserRequest;
@@ -66,7 +66,7 @@ public class UserController {
         description = """
             Advanced search with dynamic filtering, sorting, and pagination.
             
-            **Allowed Search Fields**: id, username, enabled, createdAt, tenantId
+            **Allowed Search Fields**: id, username, enabled, createdAt
             **Allowed Sort Fields**: id, username, enabled, createdAt
             
             **Supported Operators**:

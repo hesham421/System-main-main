@@ -88,7 +88,7 @@ Master validation skill that comprehensively scores a complete frontend feature 
 | V.3.10 | Loading pattern: set → call → tap → catchError → finalize | 2 | B.3.3 |
 | V.3.11 | onSuccess callbacks on write methods | 1 | B.3.4 |
 | V.3.12 | Child mutations use local signal updates | 2 | B.3.5 |
-| V.3.13 | refreshUsageInfo after child create/delete | 1 | B.3.6 |
+| V.3.13 | refreshUsageInfo after child create/delete | 2 | B.3.6 |
 | V.3.14 | Error handling via extractBackendErrorCode + mapper | 1 | B.3.7 |
 | V.3.15 | clearCurrentEntity exists and resets signals | 1 | B.3.8 |
 | V.3.16 | Pagination in lastSearchRequestSignal (consolidated) | 2 | B.3.10 |
@@ -114,7 +114,7 @@ Master validation skill that comprehensively scores a complete frontend feature 
 | V.4.14 | Permission check before loading in ngOnInit | 2 | B.4.13 |
 | V.4.15 | Presentational components: @Input/@Output only | 2 | B.4.14 |
 | V.4.16 | Modal manages own FormGroup + NgbModal | 1 | B.4.15 |
-| V.4.17 | Grid column defs accept TranslateService | 1 | B.4.6 |
+| V.4.17 | Grid column defs accept TranslateService | 2 | B.4.6 |
 | V.4.18 | Filter options from grid config function | 1 | B.4.5 |
 
 ### Stage 5: Routing, Permissions & i18n (30 points)
@@ -181,6 +181,8 @@ Regardless of score, any of these triggers **immediate rejection**:
 
 ## CROSS-CUTTING CHECKS
 
+> X.1–X.8 are gate checks — a single failure triggers automatic review regardless of point score. They do not contribute to the point total.
+
 These checks span multiple files and validate end-to-end contract compliance:
 
 | # | Check | Files Involved | What to Verify |
@@ -207,7 +209,7 @@ Complete feature directory.
 3. **Stage 3:** Audit API service + facade patterns (30 points)
 4. **Stage 4:** Check component compliance (30 points)
 5. **Stage 5:** Verify routing, permissions, and i18n (30 points)
-6. **Cross-cutting:** Run 7 alignment checks
+6. **Cross-cutting:** Run 8 alignment checks
 7. **Score:** Sum all points, apply rejection overrides
 8. **Verdict:** Determine pass/fail/warning
 

@@ -9,14 +9,13 @@ import com.erp.common.search.PageableBuilder;
 import com.erp.common.search.SearchRequest;
 import com.erp.common.search.SetAllowedFields;
 import com.erp.common.search.SpecBuilder;
-import com.example.security.domain.Permission;
+import com.example.security.entity.Permission;
 import com.example.security.dto.CreatePermissionRequest;
 import com.example.security.dto.PermissionDto;
 import com.example.security.dto.UpdatePermissionRequest;
 import com.example.security.exception.SecurityErrorCodes;
 import com.example.security.mapper.PermissionMapper;
-import com.example.erp.common.multitenancy.TenantHelper;
-import com.example.security.repo.PermissionRepository;
+import com.example.security.repository.PermissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
@@ -33,7 +32,7 @@ import java.util.Set;
 public class PermissionService {
 
     private final PermissionRepository permRepo;
-    private final com.example.security.repo.PageRepository pageRepo;
+    private final com.example.security.repository.PageRepository pageRepo;
 
     // Whitelist of allowed sort fields (Rule 17.3)
     private static final Set<String> ALLOWED_PERMISSION_SORT_FIELDS = Set.of(
@@ -49,18 +48,16 @@ public class PermissionService {
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PERMISSION_CREATE)")
     @CacheEvict(cacheNames = {"permissionByName", "permissionsList"}, allEntries = true)
     public ServiceResult<PermissionDto> createPermission(CreatePermissionRequest req) {
-        String tenant = TenantHelper.requireTenant();
-        // تحقق من عدم التكرار داخل نفس الـtenant
-        permRepo.findByNameAndTenantId(req.getName(), tenant).ifPresent(p -> {
+        // تحقق من عدم التكرار
+        permRepo.findByName(req.getName()).ifPresent(p -> {
             throw new LocalizedException(Status.ALREADY_EXISTS, SecurityErrorCodes.PERMISSION_ALREADY_EXISTS, req.getName());
         });
         Permission p = Permission.builder()
-                .tenantId(tenant)
                 .name(req.getName())
                 .build();
 
         if (req.getPageId() != null) {
-            com.example.security.domain.Page page = pageRepo.findByIdAndTenantId(req.getPageId(), tenant)
+            com.example.security.entity.Page page = pageRepo.findById(req.getPageId())
                     .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND,
                             SecurityErrorCodes.PAGE_NOT_FOUND, req.getPageId()));
             p.setPage(page);
@@ -83,8 +80,8 @@ public class PermissionService {
     public ServiceResult<Page<PermissionDto>> listPermissions(Pageable pageable) {
         // Validate sort fields (Rule 17.3)
         pageable = PageableValidator.validateSortFields(pageable, ALLOWED_PERMISSION_SORT_FIELDS);
-        
-        Page<Permission> permissions = permRepo.findAllByTenantId(TenantHelper.requireTenant(), pageable);
+
+        Page<Permission> permissions = permRepo.findAll(pageable);
         return ServiceResult.success(permissions.map(PermissionMapper::toDto));
     }
 
@@ -95,8 +92,6 @@ public class PermissionService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PERMISSION_VIEW)")
     public ServiceResult<Page<PermissionDto>> searchPermissions(SearchRequest request) {
-        String tenant = TenantHelper.requireTenant();
-
         // Build JPA Specification from filters
         Specification<Permission> spec = SpecBuilder.build(
             request,
@@ -104,33 +99,22 @@ public class PermissionService {
             DefaultFieldValueConverter.INSTANCE
         );
 
-        // Add tenant filter (security requirement)
-        if (spec != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("tenantId"), tenant));
-        } else {
-            spec = (root, query, cb) -> cb.equal(root.get("tenantId"), tenant);
-        }
-
         // Build Pageable with validated sort fields
         Pageable pageable = PageableBuilder.from(request, ALLOWED_PERMISSION_SORT_FIELDS);
 
-        Page<Permission> permissions = permRepo.findAll(spec, pageable);
+        Page<Permission> permissions = (spec != null) ? permRepo.findAll(spec, pageable) : permRepo.findAll(pageable);
         return ServiceResult.success(permissions.map(PermissionMapper::toDto));
     }
-
-    // tenant checking delegated to TenantHelper
 
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PERMISSION_UPDATE)")
     @CacheEvict(cacheNames = {"permissionByName", "permissionsList"}, allEntries = true)
     public ServiceResult<PermissionDto> updatePermission(Long id, UpdatePermissionRequest req) {
-        String tenant = TenantHelper.requireTenant();
         Permission permission = permRepo.findById(id)
-                .filter(p -> tenant.equals(p.getTenantId()))
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PERMISSION_NOT_FOUND, id));
 
         // Check uniqueness of new name (excluding self)
-        permRepo.findByNameAndTenantId(req.getName(), tenant)
+        permRepo.findByName(req.getName())
                 .filter(existing -> !existing.getId().equals(id))
                 .ifPresent(existing -> {
                     throw new LocalizedException(Status.ALREADY_EXISTS, SecurityErrorCodes.PERMISSION_ALREADY_EXISTS, req.getName());

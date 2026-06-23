@@ -1,6 +1,5 @@
 package com.example.security.security;
 
-import com.example.erp.common.multitenancy.TenantContext;
 import com.example.erp.common.util.SecurityContextHelper;
 import com.example.security.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
@@ -38,21 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        boolean tenantSet = false;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7).trim();
-            
+
             // Skip if token is empty or clearly invalid
             if (token.isEmpty() || token.split("\\.").length != 3) {
                 log.debug("Invalid or empty JWT token in Authorization header");
             } else {
                 try {
-                    String tenant = jwtService.extractTenant(token);
-                    if (tenant != null && !tenant.isBlank()) {
-                        TenantContext.setTenantId(tenant);
-                        tenantSet = true;
-                    }
-                    
                     // Extract userId from token (more efficient than username)
                     Long userId = jwtService.extractUserId(token);
                     if (userId != null && !SecurityContextHelper.isAuthenticated()) {
@@ -68,12 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        try {
-            chain.doFilter(request, response);
-        } finally {
-            if (tenantSet) {
-                try { TenantContext.clear(); } catch (Exception e) { log.debug("Error clearing TenantContext", e); }
-            }
-        }
+        chain.doFilter(request, response);
     }
 }

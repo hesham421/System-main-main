@@ -38,8 +38,7 @@ import java.util.Locale;
     "com.example.security",                      // Security module
     "com.example.masterdata",                    // Master Data module
     "com.example.erp.finance.gl",               // Finance GL module
-    "com.example.org",                              // Organization module
-    
+
     // Common utilities
     "com.example.erp.common.web",               // Web components
     "com.example.erp.common.multitenancy",      // Multi-tenancy

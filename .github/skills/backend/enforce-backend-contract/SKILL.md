@@ -1,5 +1,5 @@
 ---
-description: "GOVERNANCE ENFORCER — validates generated backend code against ALL 73 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller). Rejects any violation. Use after ANY backend code generation or review."
+description: "GOVERNANCE ENFORCER — validates generated backend code against ALL 77 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller). Rejects any violation. Use after ANY backend code generation or review."
 ---
 
 # Skill: enforce-backend-contract
@@ -18,7 +18,7 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 
 ## Responsibilities
 
-- Validate generated backend code against ALL 73 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller)
+- Validate generated backend code against ALL 77 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller)
 - Mark each check as PASS or VIOLATION
 - Reject any non-compliant code with specific violation references
 
@@ -27,7 +27,7 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 - MUST NOT generate or modify application code — this skill only validates
 - MUST NOT fix violations automatically — report them for the appropriate create-* skill to fix
 - MUST NOT validate layers outside the backend module scope
-- MUST NOT skip any check — ALL 73 rules must be evaluated
+- MUST NOT skip any check — ALL 77 rules must be evaluated
 
 ## Output
 
@@ -38,12 +38,36 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 
 ## Enforcement Checklist
 
+### LAYER 0: Domain Layer (if declared by module Phase CORE)
+
+```
+[ ] A.0.1 — domain/ classes exist if module Phase CORE declares
+             "Domain behavior: separate classes in domain/"
+[ ] A.0.2 — domain/ classes are Spring-managed
+             (@Component or @Service)
+[ ] A.0.3 — domain/ classes do NOT make direct HTTP calls or
+             access repository unless injected via constructor
+             (data should be passed in by service)
+[ ] A.0.4 — domain/ classes throw LocalizedException for all
+             business rule violations — never raw RuntimeException
+[ ] A.0.5 — A domain/ class importing another module's service/
+             interface is NOT a layer violation — it is a sanctioned
+             XM module-boundary dependency. Do not flag it.
+```
+
+NOTE: If module Phase CORE declares "Domain behavior: embedded in
+Entity methods," skip A.0.1–A.0.5 and verify entity methods instead.
+
 ### LAYER 1: Entity Contract Enforcement
 
 Run EVERY check. Mark ✅ PASS or ❌ VIOLATION.
 
 ```
-[ ] A.1.1  — Entity extends AuditableEntity (NOT defining createdAt/createdBy directly)
+[ ] A.1.1  — Entity extends AuditableEntity (NOT defining createdAt/createdBy directly).
+             Exception: short-lived security/session artifacts
+             (e.g., RefreshToken) with their own lifecycle
+             (issuedAt/expiresAt/revoked) are exempt — verify
+             exemption is intentional before flagging as violation.
 [ ] A.1.2  — PK column is @Column(name = "ID_PK") — NOT "ID", "ENTITY_ID", etc.
 [ ] A.1.3  — PK uses GenerationType.SEQUENCE with @SequenceGenerator
 [ ] A.1.4  — allocationSize = 1 on @SequenceGenerator
@@ -128,6 +152,11 @@ Run EVERY check. Mark ✅ PASS or ❌ VIOLATION.
 [ ] A.5.15 — ALL exceptions are LocalizedException — NotFoundException NOT USED
 [ ] A.5.16 — Child search requires non-null parent ID
 [ ] A.5.17 — Child search uses Specification JOIN
+[ ] A.5.18 — Business rule checks (deactivation guards, FK
+             constraints, state transitions, domain invariants)
+             are delegated to domain/ classes or Entity methods —
+             NOT inlined directly in service method bodies.
+             Service body is orchestration-only after delegation.
 ```
 
 ### LAYER 6: Controller Contract Enforcement
@@ -183,7 +212,7 @@ The following patterns trigger IMMEDIATE rejection — no exceptions:
 | Controller with business logic | Thin controller violation |
 | Controller injecting repository | Layer violation |
 | `@ResponseStatus(CREATED)` on POST | Handled by ServiceResult mapping |
-| Entity without `AuditableEntity` | Missing audit trail |
+| Entity without `AuditableEntity` | Missing audit trail — EXCEPT short-lived security/session artifacts (e.g., RefreshToken) with their own lifecycle (issuedAt/expiresAt/revoked). Verify exemption is declared in Phase CORE before rejecting. |
 | Boolean without `BooleanNumberConverter` | Oracle compatibility breach |
 | Mapper doing `.toUpperCase()` | Canonical violation — entity @PrePersist handles it |
 | `entity.setIsActive(true)` in service | Must use `activate()`/`deactivate()` |
@@ -201,13 +230,13 @@ The following patterns trigger IMMEDIATE rejection — no exceptions:
 
 | Layer | Checks | Passed | Failed | Status |
 |-------|--------|--------|--------|--------|
-| Entity | 18 | ? | ? | ✅/❌ |
-| Repository | 8 | ? | ? | ✅/❌ |
+| Entity | 19 | ? | ? | ✅/❌ |
+| Repository | 9 | ? | ? | ✅/❌ |
 | DTO | 13 | ? | ? | ✅/❌ |
 | Mapper | 7 | ? | ? | ✅/❌ |
 | Service | 17 | ? | ? | ✅/❌ |
 | Controller | 12 | ? | ? | ✅/❌ |
-| **TOTAL** | **75** | **?** | **?** | **?** |
+| **TOTAL** | **77** | **?** | **?** | **?** |
 
 ### Violations Found:
 1. [Violation details]

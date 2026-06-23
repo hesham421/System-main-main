@@ -144,10 +144,10 @@ Validates that frontend feature implementations comply with the ERP architectura
 | F.7.4 | RTL owned by LanguageService | RTL/LTR management exclusively in `LanguageService` — not ThemeService or ConfigurationComponent | RTL classes set in ConfigurationComponent |
 | F.7.5 | ConfigurationComponent is thin | Only applies font family from MantisConfig — all other concerns delegated to ThemeService | ConfigurationComponent manipulates dark mode, theme color, or container |
 | F.7.6 | No direct body manipulation | Components use ThemeService methods — never `document.body.classList.add()` for theme | `document.body.classList.add('mantis-dark')` in component |
-| F.7.7 | Card-header-right uses flexbox | `.card-header-right` layout is flexbox (from global `card.scss`) — not absolute | `position: absolute` on `.card-header-right` |
-| F.7.8 | No ::ng-deep card positioning | Component SCSS does not use `::ng-deep` to override card-header-right layout | `::ng-deep { .card-header-right { position: absolute } }` |
+| F.7.7 | Card-header-right uses flexbox | See enforce-design-system DS.18 (card-header-right flex) | See enforce-design-system DS.18 |
+| F.7.8 | No ::ng-deep card positioning | See enforce-design-system DS.19 (::ng-deep forbidden) | See enforce-design-system DS.19 |
 | F.7.9 | Navigation fully translated | All text in nav-right and nav-content uses `\| translate` pipe | Hardcoded navigation labels |
-| F.7.10 | Single Arabic font source | Arabic font defined only in `font-family.scss` — no conflicting rules | Duplicate `[lang="ar"]` font-family in styles.scss |
+| F.7.10 | Single Arabic font source | See enforce-design-system DS.20 + Arabic font rule | See enforce-design-system Arabic font rule |
 
 ---
 

@@ -1,7 +1,6 @@
 export interface UserDto {
   id: number;
   username: string;
-  tenantId?: string;
   enabled: boolean;
   roles: string[] | RoleDto[]; // Support both formats
   permissions: string[];
@@ -9,7 +8,6 @@ export interface UserDto {
 
 export interface RoleDto {
   id: number;
-  tenantId: string;
   name: string;
 }
 
@@ -45,7 +43,6 @@ export interface SearchRequest {
 export interface CreateUserRequest {
   username: string;
   password: string;
-  tenantId?: string;
   enabled?: boolean;
   roleNames?: string[];
 }
@@ -53,7 +50,6 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   username: string;
   password?: string;
-  tenantId?: string;
   enabled?: boolean;
   roleNames?: string[];
 }

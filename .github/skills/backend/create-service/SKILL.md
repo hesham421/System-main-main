@@ -1,5 +1,5 @@
 ---
-description: "Generates the @Service with all business logic: CRUD, search, toggleActive, getUsage. Phase 1, Step 1.7. Enforces @PreAuthorize, @Transactional, ServiceResult<T>, LocalizedException, SpecBuilder + PageableBuilder, ALLOWED_SORT_FIELDS."
+description: "Generates the @Service for application orchestration: CRUD, search, toggleActive, getUsage. Owns transactions, security, caching, logging. Delegates business rules to domain/ classes. Phase 1, Step 1.7. Enforces @PreAuthorize, @Transactional, ServiceResult<T>, LocalizedException, SpecBuilder + PageableBuilder, ALLOWED_SORT_FIELDS."
 ---
 
 # Skill: create-service
@@ -8,7 +8,7 @@ description: "Generates the @Service with all business logic: CRUD, search, togg
 `create-service`
 
 ## Description
-Generates the service class containing all business logic for an ERP feature. This is **Phase 1, Step 1.7** of the execution template. The service is the CORE of the feature — it owns transactions, security, caching, error handling, and business rules.
+Generates the service class for an ERP feature. This is **Phase 1, Step 1.7** of the execution template. The service is the ORCHESTRATION layer — it loads data, delegates business rules to domain/ classes, manages transactions, enforces security, and persists results. It does NOT own business rules directly.
 
 ## When to Use
 - After `create-entity`, `create-repository`, `create-dto`, `create-mapper`, and error codes are complete (Steps 1.1–1.5)
@@ -50,6 +50,30 @@ Generates the service class containing all business logic for an ERP feature. Th
 ---
 
 ## Steps
+
+## Domain Delegation Rule
+Before implementing any business rule inline in the service,
+check the module's Phase CORE for declared domain behavior placement.
+
+- Module declares domain/ layer:
+  Extract validations, decisions, and state-transition logic into
+  domain/<Entity>Domain.java. Inject it into the service and call it.
+  Service body must remain orchestration-only after delegation.
+- Module places domain behavior in Entity methods:
+  Call entity.validateX() instead of inlining the check in service.
+- A domain class MAY depend on another module's service/ interface
+  for XM cross-module lookups — this is NOT a layer violation.
+
+The service MUST NOT own business rule conditions (if blocks that
+enforce business invariants) directly in its method bodies.
+
+## Cross-Module Interface Contracts (XM)
+If this service exposes an interface consumed by other modules:
+- The interface MUST be declared in service/ alongside the
+  implementation — NOT in a standalone api/ package.
+- Consuming modules import from:
+  com.example.<module>.service.<InterfaceName>
+- MUST NOT create a dedicated api/ package for this purpose.
 
 ### 1. Create Service File
 - **Location:** `backend/erp-<MODULE_NAME>/src/main/java/com/example/<module>/service/<ENTITY_NAME>Service.java`
@@ -167,14 +191,14 @@ public ServiceResult<<ENTITY>Response> toggleActive(Long id, Boolean active) {
         .orElseThrow(() -> new LocalizedException(
             Status.NOT_FOUND, <Module>ErrorCodes.<ENTITY>_NOT_FOUND, id));
 
-    // Business rule: cannot deactivate if active children exist (if parent entity)
+    // Delegate deactivation constraint to domain
     if (Boolean.FALSE.equals(active)) {
-        long activeChildren = repository.countActiveChildren(id);
-        if (activeChildren > 0) {
-            throw new LocalizedException(Status.CONFLICT,
-                <Module>ErrorCodes.<ENTITY>_ACTIVE_CHILDREN_EXIST, id);
-        }
+        entityDomain.validateNoActiveChildren(id);
     }
+    // entityDomain is injected from domain/<Entity>Domain.java (if
+    // module declares domain/ layer) or called as entity.validateX()
+    // if domain behavior is embedded in Entity methods. Check module
+    // Phase CORE for the declared domain behavior placement.
 
     if (Boolean.TRUE.equals(active)) {
         entity.activate();
@@ -245,7 +269,7 @@ Before creating a service, verify the following shared resources from `erp-commo
 | SH.4 | Search: `SpecBuilder.build()` for dynamic JPA specifications | `SpecBuilder` | `com.erp.common.search` |
 | SH.5 | Pagination: `PageableBuilder.from()` with sort field whitelist | `PageableBuilder` | `com.erp.common.search` |
 | SH.6 | Sort validation: `SetAllowedFields` for `ALLOWED_SORT_FIELDS` whitelist | `SetAllowedFields` | `com.erp.common.search` |
-| SH.7 | Security context: `SecurityContextHelper` for current user/tenant | `SecurityContextHelper` | `com.example.erp.common.util` |
+| SH.7 | Security context: `SecurityContextHelper` for current user (`getUsernameOrSystem()`, `isAuthenticated()`) | `SecurityContextHelper` | `com.example.erp.common.util` |
 | SH.8 | Validation utilities: `ValidationUtils` for common validations | `ValidationUtils` | `com.example.erp.common.util` |
 
 **Rules:**

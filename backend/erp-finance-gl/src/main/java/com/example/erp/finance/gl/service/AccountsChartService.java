@@ -9,9 +9,10 @@ import com.example.erp.finance.gl.entity.AccountsChart;
 import com.example.erp.finance.gl.exception.GlErrorCodes;
 import com.example.erp.finance.gl.mapper.AccountsChartMapper;
 import com.example.erp.finance.gl.repository.AccountsChartRepository;
-import com.example.erp.finance.gl.repository.AccRuleHdrRepository;
+import com.example.erp.finance.gl.domain.AccountChartNumberGenerator;
+import com.example.erp.finance.gl.domain.AccountChartTreeValidator;
 import com.example.erp.finance.gl.util.GlAccountTypeNormalizer;
-import com.example.masterdata.api.LookupValidationApi;
+import com.example.masterdata.service.LookupValidationApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -50,7 +51,6 @@ import java.util.stream.Collectors;
 public class AccountsChartService {
 
     private final AccountsChartRepository accountsChartRepository;
-    private final AccRuleHdrRepository accRuleHdrRepository;
     private final AccountsChartMapper accountsChartMapper;
     private final AccountChartNumberGenerator numberGenerator;
     private final AccountChartTreeValidator treeValidator;
@@ -97,13 +97,6 @@ public class AccountsChartService {
 
             entity.setParent(parent);
 
-            // Validate parent has a code (defensive check for legacy data)
-            if (parent.getAccountChartNo() == null || parent.getAccountChartNo().isBlank()) {
-                throw new LocalizedException(Status.BUSINESS_RULE_VIOLATION,
-                        GlErrorCodes.GL_ACCOUNT_NO_GENERATION_FAILED,
-                        "Parent account (PK=" + parent.getAccountChartPk() + ") has no account number");
-            }
-
             // Auto-generate child account number
             String accountNo = numberGenerator.generateChildAccountNo(
                     parent.getAccountChartNo(), parent.getAccountChartPk(),
@@ -118,12 +111,7 @@ public class AccountsChartService {
 
         log.debug("Generated account number: {} for org={}", entity.getAccountChartNo(), entity.getOrganizationFk());
 
-        // Final uniqueness check (defensive — constraint also enforces this)
-        if (accountsChartRepository.existsByAccountChartNoAndOrganizationFk(
-                entity.getAccountChartNo(), entity.getOrganizationFk())) {
-            throw new LocalizedException(Status.ALREADY_EXISTS,
-                    GlErrorCodes.GL_DUPLICATE_ACCOUNT_CODE, entity.getAccountChartNo());
-        }
+        numberGenerator.validateNoDuplicateAccountNo(entity.getAccountChartNo(), entity.getOrganizationFk());
 
         AccountsChart saved = accountsChartRepository.save(entity);
         log.info("Account created: pk={}, code={}, org={}, parent={}",
@@ -147,10 +135,8 @@ public class AccountsChartService {
         lookupValidationApi.validateOrThrow(LK_GL_ACCOUNT_TYPE, normalizedAccountType);
 
         // organizationFk is immutable
-        if (!entity.getOrganizationFk().equals(request.getOrganizationFk())) {
-            throw new LocalizedException(Status.CONFLICT,
-                    GlErrorCodes.GL_ACCOUNT_ORG_LOCKED, accountChartPk);
-        }
+        treeValidator.validateOrganizationImmutable(
+                entity.getOrganizationFk(), request.getOrganizationFk(), accountChartPk);
 
         // Prevent account type change if children exist
         treeValidator.validateAccountTypeChange(
@@ -195,17 +181,7 @@ public class AccountsChartService {
         AccountsChart entity = findAccountOrThrow(accountChartPk);
 
         // Cannot deactivate if has active children
-        long activeChildren = accountsChartRepository.countActiveChildrenByParentPk(accountChartPk);
-        if (activeChildren > 0) {
-            throw new LocalizedException(Status.CONFLICT,
-                    GlErrorCodes.GL_ACCOUNT_HAS_CHILDREN, accountChartPk, activeChildren);
-        }
-
-        // Cannot deactivate if used in active accounting rules
-        if (accRuleHdrRepository.isAccountUsedInActiveRules(accountChartPk)) {
-            throw new LocalizedException(Status.CONFLICT,
-                    GlErrorCodes.GL_ACCOUNT_IN_ACTIVE_RULE, accountChartPk);
-        }
+        treeValidator.validateNoActiveChildren(accountChartPk);
 
         // Placeholder for balance check
         log.debug("Balance check for deactivation of account pk={} — placeholder (no balance table yet)", accountChartPk);
@@ -326,7 +302,12 @@ public class AccountsChartService {
         Set<Long> excludePks = new HashSet<>();
         if (excludeAccountPk != null) {
             excludePks.add(excludeAccountPk);
-            collectDescendantPks(excludeAccountPk, excludePks);
+            AccountsChart excludeAccount = accountsChartRepository.findByAccountChartPk(excludeAccountPk).orElse(null);
+            if (excludeAccount != null) {
+                List<AccountsChart> preloadedTree = accountsChartRepository
+                        .findAllForTreeByOrganization(excludeAccount.getOrganizationFk());
+                excludePks.addAll(treeValidator.collectDescendantPks(preloadedTree, excludeAccountPk));
+            }
         }
 
         // Use a sentinel value if excludePks is empty (JPA IN clause requires non-empty collection)
@@ -353,36 +334,6 @@ public class AccountsChartService {
                 .accountType(entity.getAccountType())
                 .isActive(Boolean.TRUE.equals(entity.getIsActive()))
                 .build();
-    }
-
-    /**
-     * Collect all descendant PKs for the given account using a single DB query
-     * and in-memory traversal (avoids N+1 recursive queries).
-     */
-    private void collectDescendantPks(Long parentPk, Set<Long> collector) {
-        // Find the account to get its organization
-        AccountsChart account = accountsChartRepository.findByAccountChartPk(parentPk).orElse(null);
-        if (account == null) return;
-
-        // Load all accounts for the organization in one query
-        List<AccountsChart> allAccounts = accountsChartRepository.findAllForTreeByOrganization(account.getOrganizationFk());
-
-        // Build parent→children map in memory
-        Map<Long, List<AccountsChart>> childrenMap = allAccounts.stream()
-                .filter(a -> a.getParent() != null)
-                .collect(Collectors.groupingBy(a -> a.getParent().getAccountChartPk()));
-
-        // BFS traversal in memory
-        Queue<Long> queue = new LinkedList<>();
-        queue.add(parentPk);
-        while (!queue.isEmpty()) {
-            Long current = queue.poll();
-            List<AccountsChart> children = childrenMap.getOrDefault(current, Collections.emptyList());
-            for (AccountsChart child : children) {
-                collector.add(child.getAccountChartPk());
-                queue.add(child.getAccountChartPk());
-            }
-        }
     }
 
     // ==================== HELPER METHODS ====================

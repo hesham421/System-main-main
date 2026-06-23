@@ -1,6 +1,6 @@
 package com.example.security.mapper;
 
-import com.example.security.domain.Permission;
+import com.example.security.entity.Permission;
 import com.example.security.dto.PermissionDto;
 import lombok.experimental.UtilityClass;
 
@@ -25,7 +25,6 @@ public class PermissionMapper {
 
         PermissionDto.PermissionDtoBuilder builder = PermissionDto.builder()
                 .id(entity.getId())
-                .tenantId(entity.getTenantId())
                 .name(entity.getName())
                 .description(null) // Permission entity does not have description field
                 .permissionType(entity.getPermissionType() != null ? entity.getPermissionType().name() : null);

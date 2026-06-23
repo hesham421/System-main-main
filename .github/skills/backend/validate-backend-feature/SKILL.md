@@ -1,5 +1,5 @@
 ---
-description: "MASTER VALIDATION — runs ALL enforcement checks across a completed backend feature. Verifies execution order, file inventory, 73 layer-by-layer contract rules, cross-cutting validations (error handling, caching, security, immutability), and unit tests."
+description: "MASTER VALIDATION — runs ALL enforcement checks across a completed backend feature. Verifies execution order, file inventory, 77 layer-by-layer contract rules, cross-cutting validations (error handling, caching, security, immutability), and unit tests."
 ---
 
 # Skill: validate-backend-feature
@@ -21,7 +21,7 @@ description: "MASTER VALIDATION — runs ALL enforcement checks across a complet
 
 - Verify ALL phases were executed in correct order (entity → repository → DTO → mapper → service → controller → tests)
 - Run file inventory check to confirm all required files exist
-- Execute all layer-by-layer contract checks (73 rules)
+- Execute all layer-by-layer contract checks (77 rules)
 - Validate cross-cutting concerns: error handling, caching, security, immutability
 - Verify unit test coverage for all service method scenarios
 
@@ -37,7 +37,7 @@ description: "MASTER VALIDATION — runs ALL enforcement checks across a complet
 - Comprehensive validation report with:
   - Execution order verification (pass/fail)
   - File inventory (present/missing per artifact)
-  - Layer-by-layer contract compliance (73 checks)
+  - Layer-by-layer contract compliance (77 checks)
   - Cross-cutting validation results
   - Unit test coverage assessment
   - Final verdict: APPROVED or REJECTED with reasons
@@ -55,6 +55,14 @@ Verify that ALL phases were executed in the correct order:
 [ ] Step 1.2 Repository   — File exists, extends JpaRepository + JpaSpecificationExecutor
 [ ] Step 1.3 DTOs         — All 5-6 DTO files exist (Create, Update, Response, Search, Usage, Option)
 [ ] Step 1.4 Mapper       — File exists, @Component annotated
+[ ] Step 1.4.5 Domain     — (CONDITIONAL: only if module Phase CORE
+                              declares "Domain behavior: separate classes
+                              in domain/")
+                              domain/ class(es) exist and are
+                              Spring-managed. Service delegates business
+                              rule checks to them — not inline.
+                              SKIP if Phase CORE declares "Domain
+                              behavior: embedded in Entity methods."
 [ ] Step 1.5 Error Codes  — Constants registered in <Module>ErrorCodes
 [ ] Step 1.6 Permissions  — 4 permissions in SecurityPermissions.java
 [ ] Step 1.7 Service      — File exists, @Service annotated
@@ -81,6 +89,12 @@ backend/erp-<module>/src/main/java/com/example/<module>/
 ├── dto/<Entity>UsageResponse.java                   [ ]
 ├── dto/<Entity>OptionResponse.java (if dropdown)    [ ]
 ├── mapper/<Entity>Mapper.java                       [ ]
+├── domain/<Entity>DomainClass.java   ← CONDITIONAL: only if module
+│                                        Phase CORE declares domain/
+│                                        layer. May be named
+│                                        <Entity>Domain,
+│                                        <Entity>Validator, or
+│                                        similar. Skip if not present.
 ├── exception/<Module>ErrorCodes.java (updated)      [ ]
 ├── service/<Entity>Service.java                     [ ]
 └── controller/<Entity>Controller.java               [ ]
@@ -102,11 +116,17 @@ backend/erp-main/src/main/resources/i18n/
 
 Run each enforcement skill's full checklist:
 
-#### 2.1 Entity Validation (18 checks from `enforce-backend-contract`)
-- A.1.1 through A.1.18
+#### 2.1 Entity Validation (19 checks from `enforce-backend-contract`)
+- A.1.1 through A.1.19
 
-#### 2.2 Repository Validation (8 checks)
-- A.2.1 through A.2.8
+> Note: A.1.1 (AuditableEntity) has a canonical exception for
+> short-lived security/session artifacts (e.g., RefreshToken)
+> with their own lifecycle fields (issuedAt/expiresAt/revoked).
+> Verify exemption is intentionally declared in module Phase CORE
+> before flagging as a violation.
+
+#### 2.2 Repository Validation (9 checks)
+- A.2.1 through A.2.9
 
 #### 2.3 DTO Validation (13 checks)
 - A.3.1 through A.3.13
@@ -173,6 +193,26 @@ Run each enforcement skill's full checklist:
 [ ] Controller does NOT use @ResponseStatus(CREATED)
 ```
 
+#### 3.6 Domain Delegation (CONDITIONAL — if module declares domain/)
+
+```
+[ ] 3.6.1 — Business rule guards (deactivation checks, FK
+             constraints, state transitions) are NOT inlined in
+             service method bodies — delegated to domain/ class(es)
+             or Entity methods
+[ ] 3.6.2 — Service body is orchestration-only: load → delegate
+             → persist → return (no business if blocks remaining)
+[ ] 3.6.3 — domain/ class throws LocalizedException for rule
+             violations (not the service)
+[ ] 3.6.4 — If domain/ class imports another module's service/
+             interface: NOT flagged as layer violation — this is a
+             sanctioned XM module-boundary dependency
+```
+
+NOTE: Skip 3.6 entirely if module Phase CORE declares "Domain
+behavior: embedded in Entity methods" — check entity methods
+directly instead (entity.validateX() call pattern in service).
+
 ---
 
 ### STAGE 4: Unit Test Validation
@@ -216,20 +256,20 @@ Run each enforcement skill's full checklist:
 |-------|--------|-----------|
 | Stage 0: Execution Order | 10% | 9 points |
 | Stage 1: File Inventory | 10% | 14 points |
-| Stage 2: Layer Contracts | 40% | 75 points |
+| Stage 2: Layer Contracts | 40% | 77 points |
 | Stage 3: Cross-Cutting | 25% | 22 points |
 | Stage 4: Unit Tests | 10% | 15 points |
 | Stage 5: Build/Test | 5% | 2 points |
-| **TOTAL** | **100%** | **137 points** |
+| **TOTAL** | **100%** | **139 points** |
 
 ### Verdict Thresholds
 
 | Score | Verdict | Action |
 |-------|---------|--------|
-| 137/137 (100%) | ✅ **APPROVED** | Proceed to frontend |
-| 130-136 (95%+) | ⚠️ **APPROVED WITH NOTES** | Minor issues, document and proceed |
-| 110-129 (80%+) | 🔶 **CONDITIONAL** | Fix issues before proceeding |
-| < 110 (< 80%) | ❌ **REJECTED** | Major rework required |
+| 139/139 (100%) | ✅ **APPROVED** | Proceed to frontend |
+| 133-138 (95%+) | ⚠️ **APPROVED WITH NOTES** | Minor issues, document and proceed |
+| 112-132 (80%+) | 🔶 **CONDITIONAL** | Fix issues before proceeding |
+| < 112 (< 80%) | ❌ **REJECTED** | Major rework required |
 
 ### Automatic Rejection (regardless of score)
 
@@ -281,8 +321,8 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 ## STAGE 2: Layer Contracts
 | Layer | Checks | Passed | Failed |
 |-------|--------|--------|--------|
-| Entity | 18 | ? | ? |
-| Repository | 8 | ? | ? |
+| Entity | 19 | ? | ? |
+| Repository | 9 | ? | ? |
 | DTO | 13 | ? | ? |
 | Mapper | 7 | ? | ? |
 | Service | 17 | ? | ? |
@@ -310,7 +350,7 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 ## VIOLATIONS FOUND
 1. [Rule ID] — [Description] — [Location] — [Severity]
 
-## SCORE: [X] / 137 ([Y]%)
+## SCORE: [X] / 139 ([Y]%)
 
 ## VERDICT: APPROVED / APPROVED WITH NOTES / CONDITIONAL / REJECTED
 
@@ -320,20 +360,9 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 
 ---
 
-## `erp-common-utils` REUSE CHECKS
+### erp-common-utils Compliance (CU.1–CU.8)
 
-When validating a backend feature, verify these `erp-common-utils` classes are consumed — not reinvented:
-
-| # | Check | Expected | Violation |
-|---|-------|----------|----------|
-| CU.1 | Entity extends `AuditableEntity` | `extends AuditableEntity` from `com.example.erp.common.domain` | Custom audit base class |
-| CU.2 | Boolean columns use `BooleanNumberConverter` | `@Convert(converter = BooleanNumberConverter.class)` | Custom boolean converter |
-| CU.3 | Service returns `ServiceResult<T>` | All non-delete methods return `ServiceResult` from `com.example.erp.common.domain.status` | Custom result wrapper |
-| CU.4 | Errors use `LocalizedException` | `throw new LocalizedException(Status, ErrorCode)` from `com.example.erp.common.exception` | `NotFoundException`, raw `RuntimeException` |
-| CU.5 | Search uses `SpecBuilder` + `PageableBuilder` | `SpecBuilder.build()` + `PageableBuilder.from()` from `com.erp.common.search` | Manual `Specification` / `Pageable` |
-| CU.6 | Controller uses `OperationCode.craftResponse()` | From `com.example.erp.common.web` | Custom response wrapping |
-| CU.7 | No duplicate `GlobalExceptionHandler` | Zero exception `@ControllerAdvice` in feature module | Per-module exception handler |
-| CU.8 | No duplicate `ApiResponse` | Zero custom response envelope in feature module | Per-module response DTO |
+Run `.github/skills/backend/enforce-backend-contract/SKILL.md` for full erp-common-utils compliance validation (CU.1–CU.8). A feature that fails any CU check is NOT compliant regardless of its layer scores.
 
 ---
 
@@ -341,6 +370,6 @@ When validating a backend feature, verify these `erp-common-utils` classes are c
 
 | Skill | Purpose |
 |-------|---------|
-| `enforce-backend-contract` | Detailed 75-check architectural validation across all layers |
+| `enforce-backend-contract` | Detailed 77-check architectural validation across all layers |
 | `enforce-error-handling` | 27-check error handling compliance with `LocalizedException` and `Status` |
 | `enforce-caching-rules` | 35-check caching eligibility and annotation rules |

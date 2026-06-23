@@ -25,7 +25,6 @@
         <module>erp-security</module>
         <module>erp-finance-gl</module>
         <module>erp-masterdata</module>
-        <module>erp-org</module>
         <module>erp-main</module>
 <!--        <module>erp-rental-engine</module>-->
     </modules>
@@ -69,12 +68,6 @@
             <dependency>
                 <groupId>com.erp</groupId>
                 <artifactId>erp-masterdata</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.erp</groupId>
-                <artifactId>erp-org</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

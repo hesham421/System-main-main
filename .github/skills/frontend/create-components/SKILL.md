@@ -703,9 +703,9 @@ Before creating new components, verify ALL of the following shared resources are
 | B.4.14 | Presentational components: `@Input/@Output` only, no service injection | Contract B.4.14 | Smart child components |
 | B.4.15 | Modal manages own `FormGroup` and `NgbModal` lifecycle | Contract B.4.15 | Parent managing modal form state |
 | B.4.16 | Numeric form→DTO mappings use `??` NOT `\|\|` | Contract B.4.16 | `sortOrder \|\| undefined` |
-| B.4.17 | Component SCSS MUST NOT override `.card-header-right` positioning | Card Layout Rules | `::ng-deep .card-header-right { position: absolute }` |
-| B.4.18 | Theme operations use `ThemeService` methods — NEVER direct DOM manipulation | Theme System | `document.body.classList.add('mantis-dark')` in component |
-| B.4.19 | Component SCSS MUST NOT contain `::ng-deep` for globally-managed styles | Card Layout Rules | `::ng-deep .card-header-right { ... }` |
+| B.4.17 | Component SCSS MUST NOT override `.card-header-right` positioning | See enforce-design-system DS.18 (card-header-right flex) | See enforce-design-system DS.18 |
+| B.4.18 | Theme operations use `ThemeService` methods — NEVER direct DOM manipulation | See enforce-design-system DS.19 (::ng-deep forbidden) | See enforce-design-system DS.19 |
+| B.4.19 | Component SCSS MUST NOT contain `::ng-deep` for globally-managed styles | See enforce-design-system ThemeService token rules | See enforce-design-system ThemeService token rules |
 
 ---
 

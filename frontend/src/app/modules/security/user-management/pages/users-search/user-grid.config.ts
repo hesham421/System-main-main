@@ -29,7 +29,6 @@ export function createUserFilterOptions(translate: TranslateService): {
   const fields: SpecFieldOption[] = [
     { value: 'id', label: translate.instant('USERS.ID') },
     { value: 'username', label: translate.instant('USERS.USERNAME') },
-    { value: 'tenantId', label: translate.instant('USERS.TENANT_ID') },
     {
       value: 'enabled',
       label: translate.instant('USERS.STATUS'),
@@ -68,7 +67,6 @@ export function createUserColumnDefs(
   return [
     { field: 'id', headerName: translate.instant('USERS.ID'), filter: 'agNumberColumnFilter', maxWidth: 100, sortable: true },
     { field: 'username', headerName: translate.instant('USERS.USERNAME'), filter: 'agTextColumnFilter', sortable: true, flex: 1 },
-    { field: 'tenantId', headerName: translate.instant('USERS.TENANT_ID'), filter: 'agTextColumnFilter', sortable: true, maxWidth: 150 },
     createActiveColumnDef(activeLabels, {
       field: 'enabled',
       headerName: translate.instant('USERS.STATUS'),

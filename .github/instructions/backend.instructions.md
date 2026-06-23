@@ -20,7 +20,7 @@ Controller → Service → Repository
 | Layer | Responsibility |
 |---|---|
 | **Controller** | REST endpoint, input validation (`@Valid`), delegation to service. ZERO business logic. |
-| **Service** | Business rules, transactions, security enforcement, caching, logging. |
+| **Service** | Application orchestration: load data, invoke domain, manage transactions, call integrations, persist changes. Does not own business rules — delegates to domain. Also hosts cross-module (XM) IoC interface contracts consumed by other modules — no separate "api/" layer. |
 | **Repository** | JPA data access. Module-internal only — NEVER shared across modules. |
 
 ### Supporting Layers
@@ -28,6 +28,7 @@ Controller → Service → Repository
 | Layer | Responsibility |
 |---|---|
 | **Entity** | JPA persistence model. Internal to the module — NEVER exposed outside. |
+| **Domain** | Business rules owner: validations, decisions, state transitions, calculations. May live inside Entity methods OR in separate domain/ classes — declared per-module, not a single global choice. A domain/ class MAY depend on another module's service/ interface for XM business-rule consumption — this is NOT a layer violation. |
 | **DTO** | Public API contract. ALL external communication uses DTOs. |
 | **Mapper** | Converts Entity ↔ DTO. One `@Component` mapper per entity. |
 
@@ -108,6 +109,7 @@ Controller → Service → Repository
 ### 2.8 Entity Rules
 
 - MUST extend `AuditableEntity`.
+  Exception: short-lived security/session artifacts (e.g., RefreshToken) that carry their own lifecycle fields (issuedAt, expiresAt, revoked) are NOT required to extend AuditableEntity.
 - MUST use `@SuperBuilder` (not `@Builder`).
 - MUST use `GenerationType.SEQUENCE` with explicit `@SequenceGenerator` (`allocationSize = 1`).
 - MUST NOT use `GenerationType.IDENTITY` or `AUTO`.
@@ -144,6 +146,12 @@ Controller → Service → Repository
 
 - `log.info()` for write operations.
 - `log.debug()` for read operations.
+
+### 2.12 Cross-Module Contracts (XM)
+
+- Cross-module IoC interfaces (e.g., LookupValidationApi) MUST live in service/ — NOT in a standalone api/ package.
+- Other modules import these interfaces from `com.example.<module>.service`.
+- MUST NOT create a dedicated api/ package for cross-module contracts.
 
 ---
 

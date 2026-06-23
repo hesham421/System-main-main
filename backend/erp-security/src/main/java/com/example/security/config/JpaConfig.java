@@ -30,7 +30,7 @@ public class JpaConfig {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
         em.setPackagesToScan(
-            "com.example.security.domain"            // Security module entities
+            "com.example.security.entity"             // Security module entities
         );
         em.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         return em;

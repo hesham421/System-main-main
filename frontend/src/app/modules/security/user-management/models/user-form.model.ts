@@ -16,7 +16,6 @@ import {
 export interface UserFormModel {
   username: string;
   password: string;
-  tenantId: string;
   enabled: boolean;
   roles: string[];
 }
@@ -32,7 +31,6 @@ export const UserFormMapper = {
     return {
       username: '',
       password: '',
-      tenantId: '',
       enabled: true,
       roles: []
     };
@@ -53,7 +51,6 @@ export const UserFormMapper = {
     return {
       username: dto.username,
       password: '',
-      tenantId: dto.tenantId || '',
       enabled: dto.enabled,
       roles: normalizedRoles
     };
@@ -65,7 +62,6 @@ export const UserFormMapper = {
       username: model.username,
       password: model.password,
       enabled: model.enabled,
-      tenantId: model.tenantId || undefined,
       roleNames: model.roles.length > 0 ? model.roles : undefined
     };
   },
@@ -75,7 +71,6 @@ export const UserFormMapper = {
     const request: UpdateUserRequest = {
       username: model.username,
       enabled: model.enabled,
-      tenantId: model.tenantId || undefined,
       roleNames: model.roles.length > 0 ? model.roles : undefined
     };
     if (model.password) request.password = model.password;

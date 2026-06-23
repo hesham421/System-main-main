@@ -3,7 +3,6 @@ package com.example.masterdata.service;
 import com.example.erp.common.domain.status.ServiceResult;
 import com.example.erp.common.domain.status.Status;
 import com.example.erp.common.exception.LocalizedException;
-import com.example.masterdata.api.LookupValidationApi;
 import com.example.masterdata.dto.LookupCacheEntry;
 import com.example.masterdata.dto.LookupValueResponse;
 import com.example.masterdata.exception.MasterDataErrorCodes;

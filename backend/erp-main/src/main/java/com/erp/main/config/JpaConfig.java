@@ -18,10 +18,9 @@ import java.util.Properties;
 @Configuration("erpMainJpaConfig")
 @EnableJpaRepositories(
     basePackages = {
-        "com.example.security.repo",
+        "com.example.security.repository",
         "com.example.masterdata.repository",
-        "com.example.erp.finance.gl.repository",
-        "com.example.org.repository"
+        "com.example.erp.finance.gl.repository"
     }
 )
 public class JpaConfig {
@@ -44,10 +43,9 @@ public class JpaConfig {
         em.setDataSource(dataSource);
 
         em.setPackagesToScan(
-            "com.example.security.domain",
+            "com.example.security.entity",
             "com.example.masterdata.entity",
-            "com.example.erp.finance.gl.entity",
-            "com.example.org.entity"
+            "com.example.erp.finance.gl.entity"
         );
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();

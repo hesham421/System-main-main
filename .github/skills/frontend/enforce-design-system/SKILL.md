@@ -328,10 +328,12 @@ When reviewing or generating SCSS, check each property:
 - **Theme presets** are applied via `[part='preset-N']` CSS attribute selector on `<body>` (defined in `style-preset.scss`). ThemeService manages preset switching with `localStorage` persistence.
 - **Dark mode** is activated via `body.mantis-dark` class application. ThemeService manages this via reactive `effect()` — components MUST NOT add/remove this class directly.
 - **Card header actions** (`.card-header-right`) use **flexbox layout** (`display: flex`) — NOT absolute positioning. This is defined globally in `card.scss`. Components MUST NOT override this with `::ng-deep { .card-header-right { position: absolute; } }`.
+<!-- AUTHORITATIVE SOURCE: all other skills reference this section -->
 - **Arabic font family** (`Droid Arabic Naskh`) is defined in `font-family.scss` for `[lang="ar"]`. No other SCSS file may declare a competing `[lang="ar"] { font-family: ... }` rule.
 
 ---
 
+<!-- AUTHORITATIVE SOURCE: all other skills reference this section -->
 ## CARD LAYOUT RULES
 
 The card header layout uses flexbox for proper RTL/LTR support:

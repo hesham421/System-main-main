@@ -152,14 +152,14 @@ Before creating a new entity, verify the following shared resources from `erp-co
 
 | # | Requirement | Shared Class | Package |
 |---|-------------|-------------|--------|
-| SH.1 | MUST extend `AuditableEntity` for audit fields | `AuditableEntity` | `com.example.erp.common.domain` |
+| SH.1 | MUST extend `AuditableEntity` for audit fields. Exception: short-lived security/session artifacts (e.g., RefreshToken) with their own lifecycle fields (issuedAt, expiresAt, revoked) are NOT required to extend AuditableEntity. Declare in Phase CORE: "[EntityName]: Session artifact — does not extend AuditableEntity." | `AuditableEntity` | `com.example.erp.common.domain` |
 | SH.2 | MUST use `BooleanNumberConverter` for all boolean columns (NUMBER(1)) | `BooleanNumberConverter` | `com.example.erp.common.converter` |
 | SH.3 | Audit fields auto-populated by `AuditEntityListener` — do NOT set manually | `AuditEntityListener` | `com.example.erp.common.audit` |
-| SH.4 | Multi-tenant entities extend `TenantAuditableEntity` if applicable | `TenantAuditableEntity` | `com.example.erp.common.domain` |
-| SH.5 | Use `@SuperBuilder` due to `AuditableEntity` inheritance — NEVER `@Builder` | — | Lombok |
+| SH.4 | Use `@SuperBuilder` due to `AuditableEntity` inheritance — NEVER `@Builder` | — | Lombok |
 
 **Rules:**
 - NEVER create a custom audit base class — use `AuditableEntity`
+- NEVER add a TENANT_ID column — the system is single-tenant
 - NEVER create a custom boolean converter — use `BooleanNumberConverter` (or `BooleanCharYNConverter` for CHAR(1) columns)
 - NEVER set `createdAt/createdBy/updatedAt/updatedBy` manually — `AuditEntityListener` handles it
 
@@ -171,7 +171,7 @@ Before creating a new entity, verify the following shared resources from `erp-co
 
 | Rule ID | Rule | MUST |
 |---------|------|------|
-| A.1.1 | Extends `AuditableEntity` | YES |
+| A.1.1 | Extends `AuditableEntity` | YES — except short-lived security/session artifacts (e.g., RefreshToken) with own lifecycle (issuedAt/expiresAt/revoked). Verify exemption is intentional before flagging. |
 | A.1.2 | PK column is `ID_PK` with `@Column(name = "ID_PK")` | YES |
 | A.1.3 | PK uses `GenerationType.SEQUENCE` with explicit `@SequenceGenerator` | YES |
 | A.1.4 | `allocationSize = 1` on `@SequenceGenerator` | YES |

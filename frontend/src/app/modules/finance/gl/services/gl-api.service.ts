@@ -1,18 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
 import { BaseApiService } from 'src/app/shared/base/base-api.service';
 import {
   AccountChartDto,
   AccountChartTreeNode,
-  AccRuleHdrDto,
   CreateAccountRequest,
   UpdateAccountRequest,
-  CreateRuleRequest,
-  UpdateRuleRequest,
   EligibleParentAccountDto,
   PagedResponse,
   SearchRequest
@@ -30,7 +26,6 @@ import {
 @Injectable()
 export class GlApiService extends BaseApiService {
   private readonly accountsUrl = `${environment.authApiUrl}/api/gl/accounts`;
-  private readonly rulesUrl = `${environment.authApiUrl}/api/gl/rules`;
 
   // ── Chart of Accounts ──────────────────────────────────────
 
@@ -87,30 +82,5 @@ export class GlApiService extends BaseApiService {
 
     return this.doGet<PagedResponse<EligibleParentAccountDto>>(
       `${this.accountsUrl}/eligible-parents`, httpParams);
-  }
-
-  // ── Accounting Rules ───────────────────────────────────────
-
-  searchRules(request: SearchRequest): Observable<PagedResponse<AccRuleHdrDto>> {
-    return this.doPost<PagedResponse<AccRuleHdrDto>>(`${this.rulesUrl}/search`, request);
-  }
-
-  getRuleById(ruleId: number): Observable<AccRuleHdrDto> {
-    return this.doGet<AccRuleHdrDto>(`${this.rulesUrl}/${ruleId}`);
-  }
-
-  createRule(request: CreateRuleRequest): Observable<AccRuleHdrDto> {
-    return this.doPost<AccRuleHdrDto>(this.rulesUrl, request);
-  }
-
-  updateRule(ruleId: number, request: UpdateRuleRequest): Observable<AccRuleHdrDto> {
-    return this.doPut<AccRuleHdrDto>(`${this.rulesUrl}/${ruleId}`, request);
-  }
-
-  deactivateRule(ruleId: number): Observable<AccRuleHdrDto> {
-    return this.http.patch<unknown>(`${this.rulesUrl}/${ruleId}/deactivate`, {}).pipe(
-      map(res => this.unwrapResponse<AccRuleHdrDto>(res)),
-      catchError(err => throwError(() => err))
-    );
   }
 }

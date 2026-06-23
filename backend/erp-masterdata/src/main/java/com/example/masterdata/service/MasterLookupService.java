@@ -112,14 +112,8 @@ public class MasterLookupService {
         // Update entity (lookupKey is NOT updated - immutable per contract)
         masterLookupMapper.updateEntityFromRequest(entity, request);
 
-        // Explicitly set audit fields before save so they are reflected in the
-        // returned DTO immediately (JPA @PreUpdate fires at flush time which
-        // may be after toResponse() is called).
-        entity.setUpdatedAt(java.time.Instant.now());
-        entity.setUpdatedBy(com.example.erp.common.util.SecurityContextHelper.getUsernameOrSystem());
-
-        // Save
-        MdMasterLookup updated = masterLookupRepository.save(entity);
+        // saveAndFlush forces @PreUpdate (AuditEntityListener) to fire before toResponse()
+        MdMasterLookup updated = masterLookupRepository.saveAndFlush(entity);
         
         log.info("Master lookup updated: {}", id);
         return ServiceResult.success(masterLookupMapper.toResponse(updated), Status.UPDATED);

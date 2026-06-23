@@ -188,19 +188,6 @@
         <small class="form-text text-muted">{{ 'USERS.ACTIVE_HINT' | translate }}</small>
       </div>
 
-      <div class="mb-3">
-        <label for="tenantId" class="form-label">{{ 'USERS.TENANT_ID' | translate }}</label>
-        <input 
-          type="text" 
-          class="form-control" 
-          id="tenantId" 
-          [(ngModel)]="userForm.tenantId"
-          name="tenantId"
-          [placeholder]="'USERS.ENTER_TENANT' | translate"
-          [disabled]="formSubmitting()"
-        />
-        <small class="form-text text-muted">{{ 'USERS.TENANT_HINT' | translate }}</small>
-      </div>
 
       <div erpPermission="ROLE.VIEW">
         <div class="mb-3">
