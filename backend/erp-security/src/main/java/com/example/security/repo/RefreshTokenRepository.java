@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-    Optional<RefreshToken> findByJtiAndTenantId(String jti, String tenantId);
+    Optional<RefreshToken> findByJti(String jti);
     long deleteByExpiresAtBefore(Instant cutoff);
-    long countByUser_IdAndTenantId(Long userId, String tenantId);
+    long countByUser_Id(Long userId);
 }

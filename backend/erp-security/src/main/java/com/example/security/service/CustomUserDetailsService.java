@@ -2,7 +2,6 @@ package com.example.security.service;
 
 import com.example.security.domain.UserAccount;
 import com.example.security.repo.UserAccountRepository;
-import com.example.erp.common.util.SecurityContextHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
@@ -21,23 +20,19 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        String tenant = SecurityContextHelper.requireTenantId();
-
-        UserAccount ua = userRepo.findByUsernameWithRoles(username, tenant)
+        UserAccount ua = userRepo.findByUsernameWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("USER_NOT_FOUND"));
 
         return buildUserDetails(ua);
     }
-    
+
     /**
      * Load user by ID - used for JWT token authentication
      * More efficient than username lookup
      */
     @Transactional(readOnly = true)
     public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
-        String tenant = SecurityContextHelper.requireTenantId();
-
-        UserAccount ua = userRepo.findByIdWithRoles(userId, tenant)
+        UserAccount ua = userRepo.findByIdWithRoles(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("USER_NOT_FOUND"));
 
         return buildUserDetails(ua);

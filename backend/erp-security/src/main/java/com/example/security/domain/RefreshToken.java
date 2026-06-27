@@ -1,10 +1,6 @@
 package com.example.security.domain;
 
 import com.example.erp.common.converter.BooleanNumberConverter;
-import com.example.erp.common.multitenancy.TenantContext;
-import com.example.erp.common.util.SecurityContextHelper;
-import com.example.erp.common.multitenancy.TenantEntityListener;
-import com.example.erp.common.multitenancy.TenantScoped;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,9 +25,6 @@ public class RefreshToken {
     @JoinColumn(name="USER_ID", referencedColumnName = "ID", nullable=false)
     private UserAccount user;
 
-    @Column(name="TENANT_ID", nullable=false, length=64)
-    private String tenantId;
-
     @CreationTimestamp
     @Column(name="CREATED_AT", nullable=false, updatable=false)
     private Instant createdAt;
@@ -50,11 +43,5 @@ public class RefreshToken {
 
     public void setRevoked(boolean revoked) {
         this.revoked = revoked;
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (this.createdAt == null) this.createdAt = Instant.now();
-        if (this.tenantId == null)  this.tenantId  = SecurityContextHelper.getTenantId();
     }
 }

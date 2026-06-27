@@ -1,6 +1,6 @@
 package com.example.security.domain;
 
-import com.example.erp.common.domain.TenantAuditableEntity;
+import com.example.erp.common.domain.AuditableEntity;
 import com.example.security.dto.PermissionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,25 +8,24 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Permission Entity - Represents a single permission in the RBAC system
- * 
+ *
  * Each page permission is linked to a Page via PAGE_ID_FK for:
  * - Better query performance (JOIN instead of string parsing)
  * - Referential integrity (FK constraint)
  * - Cleaner architecture (proper relational model)
- * 
+ *
  * System permissions (not linked to pages) have PAGE_ID_FK = null
  */
 @Entity
 @Table(name = "PERMISSIONS",
-       uniqueConstraints = {@UniqueConstraint(name="UK_PERMS_TENANT_NAME", columnNames={"TENANT_ID","NAME"})},
+       uniqueConstraints = {@UniqueConstraint(name="UK_PERMS_NAME", columnNames={"NAME"})},
        indexes = {
-           @Index(name = "IDX_PERMS_TENANT", columnList = "TENANT_ID"),
            @Index(name = "IDX_PERMS_NAME", columnList = "NAME"),
            @Index(name = "IDX_PERMS_PAGE_FK", columnList = "PAGE_ID_FK"),
            @Index(name = "IDX_PERMS_TYPE", columnList = "PERMISSION_TYPE")
        })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
-public class Permission extends TenantAuditableEntity {
+public class Permission extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

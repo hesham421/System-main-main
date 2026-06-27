@@ -25,7 +25,6 @@ public class PermissionMapper {
 
         PermissionDto.PermissionDtoBuilder builder = PermissionDto.builder()
                 .id(entity.getId())
-                .tenantId(entity.getTenantId())
                 .name(entity.getName())
                 .description(null) // Permission entity does not have description field
                 .permissionType(entity.getPermissionType() != null ? entity.getPermissionType().name() : null);

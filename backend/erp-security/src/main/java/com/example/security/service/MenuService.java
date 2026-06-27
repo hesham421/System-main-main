@@ -35,23 +35,20 @@ public class MenuService {
     /**
      * جلب القائمة الكاملة للمستخدم الحالي بناءً على صلاحيات VIEW من SEC_PAGES
      * يبني شجرة Menu (Tree Structure)
-     * 
+     *
      * يستخدم SEC_PAGES مباشرة - لا حاجة لـ SEC_MENU_ITEM
      */
     @Transactional(readOnly = true)
-    // @Cacheable(cacheNames = "userMenus", key = "T(com.example.erp.common.util.SecurityContextHelper).getUsername() + '_' + T(com.example.erp.common.multitenancy.TenantContext).getTenantId()")
     public ServiceResult<List<MenuItemDto>> getUserMenu() {
-        SecurityContextHelper.TenantUserContext context = SecurityContextHelper.requireTenantAndUser();
-        String tenantId = context.getTenantId();
-        String username = context.getUsername();
+        String username = SecurityContextHelper.requireUsername();
 
-        log.debug("Building menu from SEC_PAGES for user: {} in tenant: {}", username, tenantId);
+        log.debug("Building menu from SEC_PAGES for user: {}", username);
 
         // 1. جلب المستخدم مع أدواره وصلاحياته
-        UserAccount user = userAccountRepository.findByUsernameWithRoles(username, tenantId)
+        UserAccount user = userAccountRepository.findByUsernameWithRoles(username)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.USER_NOT_FOUND, username));
 
-        return ServiceResult.success(buildUserMenuFromPermissions(user, tenantId));
+        return ServiceResult.success(buildUserMenuFromPermissions(user));
     }
 
     /**
@@ -59,22 +56,19 @@ public class MenuService {
      */
     @Transactional(readOnly = true)
     public ServiceResult<List<MenuItemDto>> getUserMenu(Long userId) {
-        com.example.erp.common.multitenancy.TenantHelper.requireTenant();
-        String tenantId = com.example.erp.common.multitenancy.TenantContext.getTenantId();
-
-        log.debug("Building menu from SEC_PAGES for userId: {} in tenant: {}", userId, tenantId);
+        log.debug("Building menu from SEC_PAGES for userId: {}", userId);
 
         // 1. جلب المستخدم مع أدواره وصلاحياته
-        UserAccount user = userAccountRepository.findByIdWithRoles(userId, tenantId)
+        UserAccount user = userAccountRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.USER_ENTITY_NOT_FOUND, userId));
 
-        return ServiceResult.success(buildUserMenuFromPermissions(user, tenantId));
+        return ServiceResult.success(buildUserMenuFromPermissions(user));
     }
 
     /**
      * منطق مشترك لبناء القائمة من صلاحيات المستخدم
      */
-    private List<MenuItemDto> buildUserMenuFromPermissions(UserAccount user, String tenantId) {
+    private List<MenuItemDto> buildUserMenuFromPermissions(UserAccount user) {
         // 2. جمع جميع الصلاحيات من جميع الأدوار
         Set<String> userPermissions = user.getRoles().stream()
                 .flatMap(role -> role.getPermissions().stream())
@@ -103,7 +97,7 @@ public class MenuService {
 
         // 4. جلب الصفحات من SEC_PAGES مباشرة
         List<com.example.security.domain.Page> pages = pageRepository
-                .findByPageCodeInAndTenantIdAndActive(allowedPageCodes, tenantId, true);
+                .findByPageCodeInAndActive(allowedPageCodes, true);
 
         log.debug("Found {} active pages for user", pages.size());
 
@@ -127,7 +121,7 @@ public class MenuService {
         // 6. بناء الشجرة (Tree Structure)
         List<MenuItemDto> menuTree = buildMenuTree(allMenuDtos);
 
-        log.info("Menu tree built successfully from SEC_PAGES for user: {} with {} root items", 
+        log.info("Menu tree built successfully from SEC_PAGES for user: {} with {} root items",
                  user.getUsername(), menuTree.size());
         return menuTree;
     }
@@ -157,16 +151,16 @@ public class MenuService {
                     // الأب غير موجود (ربما لا يملك صلاحيته)
                     // نضيف العنصر كـ root
                     rootItems.add(item);
-                    log.warn("Parent ID {} not found for menu item: {} - adding as root", 
+                    log.warn("Parent ID {} not found for menu item: {} - adding as root",
                             item.getParentId(), item.getNameEn());
                 }
             }
         }
 
         // 4. ترتيب العناصر حسب displayOrder
-        rootItems.sort(Comparator.comparing(MenuItemDto::getDisplayOrder, 
+        rootItems.sort(Comparator.comparing(MenuItemDto::getDisplayOrder,
                                            Comparator.nullsLast(Comparator.naturalOrder())));
-        
+
         // ترتيب الأطفال أيضاً
         for (MenuItemDto root : rootItems) {
             sortChildren(root);
@@ -182,7 +176,7 @@ public class MenuService {
         if (parent.getChildren() != null && !parent.getChildren().isEmpty()) {
             parent.getChildren().sort(Comparator.comparing(MenuItemDto::getDisplayOrder,
                                                           Comparator.nullsLast(Comparator.naturalOrder())));
-            
+
             for (MenuItemDto child : parent.getChildren()) {
                 sortChildren(child);
             }

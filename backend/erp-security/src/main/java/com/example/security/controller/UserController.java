@@ -66,7 +66,7 @@ public class UserController {
         description = """
             Advanced search with dynamic filtering, sorting, and pagination.
             
-            **Allowed Search Fields**: id, username, enabled, createdAt, tenantId
+            **Allowed Search Fields**: id, username, enabled, createdAt
             **Allowed Sort Fields**: id, username, enabled, createdAt
             
             **Supported Operators**:

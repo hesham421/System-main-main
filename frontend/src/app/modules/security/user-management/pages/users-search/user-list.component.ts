@@ -95,7 +95,7 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
   private lastAgGridSortSignature = '';
 
   // Form state
-  userForm = { username: '', password: '', tenantId: '', enabled: true, roles: [] as string[] };
+  userForm = { username: '', password: '', enabled: true, roles: [] as string[] };
   formSubmitting = signal(false);
   formError = signal('');
   isEditMode = signal(false);
@@ -344,7 +344,6 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
     this.userForm = {
       username: '',
       password: '',
-      tenantId: '',
       enabled: true,
       roles: []
     };
@@ -364,7 +363,7 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
     
     // Reset form when modal is dismissed/closed (always handle rejection to avoid unhandled promise)
     modalRef.result.then(() => undefined, () => undefined).finally(() => {
-      this.userForm = { username: '', password: '', tenantId: '', enabled: true, roles: [] };
+      this.userForm = { username: '', password: '', enabled: true, roles: [] };
       this.formError.set('');
       this.isEditMode.set(false);
       this.editingUserId.set(null);
@@ -402,11 +401,10 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
           })
           .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
       : [];
-    this.userForm = { 
-      username: user.username, 
-      password: '', 
-      tenantId: user.tenantId || '', 
-      enabled: user.enabled, 
+    this.userForm = {
+      username: user.username,
+      password: '',
+      enabled: user.enabled,
       roles: normalizedRoles
     };
     this.formError.set('');
@@ -430,7 +428,7 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
     
     // Reset form when modal is dismissed/closed (always handle rejection to avoid unhandled promise)
     modalRef.result.then(() => undefined, () => undefined).finally(() => {
-      this.userForm = { username: '', password: '', tenantId: '', enabled: true, roles: [] };
+      this.userForm = { username: '', password: '', enabled: true, roles: [] };
       this.formError.set('');
       this.isEditMode.set(false);
       this.editingUserId.set(null);
@@ -465,10 +463,9 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
     this.formModalRef = modal;
 
     if (this.isEditMode() && this.editingUserId()) {
-      const request: UpdateUserRequest = { 
-        username: this.userForm.username, 
+      const request: UpdateUserRequest = {
+        username: this.userForm.username,
         enabled: this.userForm.enabled,
-        tenantId: this.userForm.tenantId || undefined,
         roleNames: this.userForm.roles.length > 0 ? this.userForm.roles : undefined
       };
       if (this.userForm.password) request.password = this.userForm.password;
@@ -488,11 +485,10 @@ export class UserListComponent extends ErpListComponent implements OnInit, OnDes
         this.cdr.markForCheck();
       });
     } else {
-      const request: CreateUserRequest = { 
-        username: this.userForm.username, 
-        password: this.userForm.password, 
+      const request: CreateUserRequest = {
+        username: this.userForm.username,
+        password: this.userForm.password,
         enabled: this.userForm.enabled,
-        tenantId: this.userForm.tenantId || undefined,
         roleNames: this.userForm.roles.length > 0 ? this.userForm.roles : undefined
       };
       

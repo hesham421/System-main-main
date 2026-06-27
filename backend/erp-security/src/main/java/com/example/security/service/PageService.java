@@ -3,7 +3,6 @@ package com.example.security.service;
 import com.example.erp.common.domain.status.ServiceResult;
 import com.example.erp.common.domain.status.Status;
 import com.example.erp.common.exception.LocalizedException;
-import com.example.erp.common.multitenancy.TenantHelper;
 import com.example.erp.common.web.util.PageableValidator;
 import com.erp.common.search.DefaultFieldValueConverter;
 import com.erp.common.search.PageableBuilder;
@@ -30,33 +29,32 @@ import java.util.*;
 
 /**
  * Service for managing Pages (UI Screens Registry)
- * 
+ *
  * ====================================================
  * FINAL AGREED RBAC DESIGN
  * ====================================================
- * 
+ *
  * Core responsibilities:
  * 1) Register and manage UI Pages (pageCode, route, icon, menu structure, active flag)
  * 2) Create Permission RECORDS in database (PERM_<CODE>_VIEW/CREATE/UPDATE/DELETE)
  * 3) Enforce uniqueness constraints (pageCode, route)
- * 4) Tenant isolation
- * 
+ *
  * IMPORTANT DISTINCTIONS:
  * -------------------------
  * - Permission RECORD: Database entry in PERMISSIONS table (definition only)
  * - Permission ASSIGNMENT: Linking Permission to a Role (happens ONLY in RoleAccessService)
- * 
+ *
  * PageService is NOT responsible for:
  * - Assigning permissions to Roles
  * - Managing Role-Permission relationships
  * - Determining which permissions are granted to users
- * 
+ *
  * VIEW Permission Rule:
  * - VIEW permission is created as a RECORD during page registration
  * - VIEW is ALWAYS assigned automatically when a page is added to a role (in RoleAccessService)
  * - VIEW is NOT selectable in UI (implicit and mandatory)
  * - VIEW controls: screen access, menu visibility, search/query access
- * 
+ *
  * CREATE/UPDATE/DELETE Permissions:
  * - Created as RECORDS during page registration
  * - Assigned to roles ONLY if explicitly selected by user (in RoleAccessService)
@@ -82,29 +80,27 @@ public class PageService {
 
     /**
      * Create a new Page and auto-create 4 permission RECORDS
-     * 
+     *
      * IMPORTANT: This method creates:
      * 1) Page entity in SEC_PAGES table
      * 2) Permission RECORDS in PERMISSIONS table (definitions only)
-     * 
+     *
      * This method does NOT:
      * - Assign permissions to any Role
      * - Grant access to any user
      * - Imply that CRUD permissions are granted automatically
-     * 
+     *
      * Permission ASSIGNMENT to Roles happens via RoleAccessService.addPageToRole()
-     * 
+     *
      * @param request CreatePageRequest with page details
      * @return PageResponse with generated permission keys (for reference only)
      */
     @Transactional
-        @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_CREATE)")
+    @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_CREATE)")
     public ServiceResult<PageResponse> createPage(CreatePageRequest request) {
-        String tenantId = TenantHelper.requireTenant();
-        
         // Normalize pageCode to uppercase
         String pageCode = request.getPageCode().toUpperCase().trim();
-        log.info("Creating page '{}' for tenant: {}", pageCode, tenantId);
+        log.info("Creating page '{}'", pageCode);
 
         // ENHANCED VALIDATION: Check pageCode format (must be alphanumeric + underscore only)
         if (!pageCode.matches("^[A-Z0-9_]+$")) {
@@ -117,7 +113,7 @@ public class PageService {
         }
 
         // Check for duplicate pageCode
-        if (pageRepository.existsByPageCodeAndTenantId(pageCode, tenantId)) {
+        if (pageRepository.existsByPageCode(pageCode)) {
             throw new LocalizedException(Status.ALREADY_EXISTS, SecurityErrorCodes.DUPLICATE_PAGE_CODE, pageCode);
         }
 
@@ -126,19 +122,18 @@ public class PageService {
         validateRouteFormat(route);
 
         // Check for duplicate route
-        if (pageRepository.existsByRouteAndTenantId(route, tenantId)) {
+        if (pageRepository.existsByRoute(route)) {
             throw new LocalizedException(Status.ALREADY_EXISTS, SecurityErrorCodes.DUPLICATE_ROUTE, route);
         }
 
         // ENHANCED VALIDATION: Validate parent page exists if parentId is provided
         if (request.getParentId() != null) {
-            pageRepository.findByIdAndTenantId(request.getParentId(), tenantId)
+            pageRepository.findById(request.getParentId())
                     .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PARENT_PAGE_NOT_FOUND, request.getParentId()));
         }
 
         // Create Page entity
         Page page = Page.builder()
-                .tenantId(tenantId)
                 .pageCode(pageCode)
                 .nameAr(request.getNameAr())
                 .nameEn(request.getNameEn())
@@ -155,7 +150,7 @@ public class PageService {
         log.info("Page created with ID: {}", savedPage.getId());
 
         // Create permission RECORDS linked to the page (definitions only, no role assignment)
-        Map<String, String> permissionKeys = createPermissionRecords(savedPage, tenantId);
+        Map<String, String> permissionKeys = createPermissionRecords(savedPage);
         log.info("Auto-generated {} permission records for page: {}", permissionKeys.size(), pageCode);
 
         return ServiceResult.success(toResponse(savedPage, permissionKeys), Status.CREATED);
@@ -163,9 +158,9 @@ public class PageService {
 
     /**
      * Update an existing Page
-     * 
+     *
      * Note: pageCode cannot be changed (it's the stable identifier)
-     * 
+     *
      * @param id Page ID
      * @param request UpdatePageRequest
      * @return Updated PageResponse
@@ -173,9 +168,7 @@ public class PageService {
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_UPDATE)")
     public ServiceResult<PageResponse> updatePage(Long id, UpdatePageRequest request) {
-        String tenantId = TenantHelper.requireTenant();
-
-        Page page = pageRepository.findByIdAndTenantId(id, tenantId)
+        Page page = pageRepository.findById(id)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PAGE_NOT_FOUND, id));
 
         log.info("Updating page ID: {} (code: {})", id, page.getPageCode());
@@ -185,7 +178,7 @@ public class PageService {
         validateRouteFormat(route);
 
         // Check route uniqueness (excluding this page)
-        if (pageRepository.existsByRouteAndTenantIdAndIdNot(route, tenantId, id)) {
+        if (pageRepository.existsByRouteAndIdNot(route, id)) {
             throw new LocalizedException(Status.ALREADY_EXISTS, SecurityErrorCodes.DUPLICATE_ROUTE, route);
         }
 
@@ -195,8 +188,8 @@ public class PageService {
             if (request.getParentId().equals(id)) {
                 throw new LocalizedException(Status.BAD_REQUEST, SecurityErrorCodes.INVALID_PARENT_PAGE);
             }
-            
-            pageRepository.findByIdAndTenantId(request.getParentId(), tenantId)
+
+            pageRepository.findById(request.getParentId())
                     .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PARENT_PAGE_NOT_FOUND, request.getParentId()));
         }
 
@@ -225,9 +218,7 @@ public class PageService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_VIEW)")
     public ServiceResult<PageResponse> getPageById(Long id) {
-        String tenantId = TenantHelper.requireTenant();
-
-        Page page = pageRepository.findByIdAndTenantId(id, tenantId)
+        Page page = pageRepository.findById(id)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PAGE_NOT_FOUND, id));
 
         Map<String, String> permissionKeys = buildPermissionKeys(page.getPageCode());
@@ -240,13 +231,11 @@ public class PageService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_VIEW)")
     public ServiceResult<org.springframework.data.domain.Page<PageResponse>> listPages(
-            String module, 
-            Boolean active, 
-            String search, 
+            String module,
+            Boolean active,
+            String search,
             Pageable pageable
     ) {
-        String tenantId = TenantHelper.requireTenant();
-        
         // Validate sort fields (Rule 17.3)
         pageable = PageableValidator.validateSortFields(pageable, ALLOWED_PAGE_SORT_FIELDS);
 
@@ -254,16 +243,16 @@ public class PageService {
 
         if (search != null && !search.trim().isEmpty()) {
             // Search by name or code
-            pages = pageRepository.searchPages(tenantId, search.trim(), pageable);
+            pages = pageRepository.searchPages(search.trim(), pageable);
         } else if (module != null && !module.trim().isEmpty()) {
             // Filter by module
-            pages = pageRepository.findByTenantIdAndModule(tenantId, module, pageable);
+            pages = pageRepository.findByModule(module, pageable);
         } else if (active != null) {
             // Filter by active status
-            pages = pageRepository.findByTenantIdAndActive(tenantId, active, pageable);
+            pages = pageRepository.findByActive(active, pageable);
         } else {
             // All pages
-            pages = pageRepository.findByTenantId(tenantId, pageable);
+            pages = pageRepository.findAll(pageable);
         }
 
         return ServiceResult.success(pages.map(page -> {
@@ -279,8 +268,6 @@ public class PageService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_VIEW)")
     public ServiceResult<org.springframework.data.domain.Page<PageResponse>> searchPages(SearchRequest request) {
-        String tenantId = TenantHelper.requireTenant();
-
         // Build JPA Specification from filters
         Specification<Page> spec = SpecBuilder.build(
             request,
@@ -288,17 +275,12 @@ public class PageService {
             DefaultFieldValueConverter.INSTANCE
         );
 
-        // Add tenant filter (security requirement)
-        if (spec != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("tenantId"), tenantId));
-        } else {
-            spec = (root, query, cb) -> cb.equal(root.get("tenantId"), tenantId);
-        }
-
         // Build Pageable with validated sort fields
         Pageable pageable = PageableBuilder.from(request, ALLOWED_PAGE_SORT_FIELDS);
 
-        org.springframework.data.domain.Page<Page> pages = pageRepository.findAll(spec, pageable);
+        org.springframework.data.domain.Page<Page> pages = (spec != null)
+                ? pageRepository.findAll(spec, pageable)
+                : pageRepository.findAll(pageable);
         return ServiceResult.success(pages.map(page -> {
             Map<String, String> permissionKeys = buildPermissionKeys(page.getPageCode());
             return toResponse(page, permissionKeys);
@@ -311,9 +293,7 @@ public class PageService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).PAGE_VIEW)")
     public ServiceResult<List<PageResponse>> getActivePages() {
-        String tenantId = TenantHelper.requireTenant();
-
-        List<Page> pages = pageRepository.findByTenantIdAndActiveOrderByDisplayOrder(tenantId, true);
+        List<Page> pages = pageRepository.findByActiveOrderByDisplayOrder(true);
 
         return ServiceResult.success(pages.stream()
                 .map(page -> {
@@ -325,12 +305,12 @@ public class PageService {
 
     /**
      * Deactivate a Page (soft delete - RECOMMENDED)
-     * 
+     *
      * Inactive pages:
      * - Will NOT appear in getActivePages() dropdown
      * - Will NOT appear in user menu even if user has VIEW permission
      * - Can be reactivated later if needed
-     * 
+     *
      * @param id Page ID
      * @return Updated PageResponse with active=false
      */
@@ -342,7 +322,7 @@ public class PageService {
 
     /**
      * Reactivate a previously deactivated Page
-     * 
+     *
      * @param id Page ID
      * @return Updated PageResponse with active=true
      */
@@ -353,9 +333,7 @@ public class PageService {
     }
 
     private ServiceResult<PageResponse> setPageActive(Long id, boolean active) {
-        String tenantId = TenantHelper.requireTenant();
-
-        Page page = pageRepository.findByIdAndTenantId(id, tenantId)
+        Page page = pageRepository.findById(id)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PAGE_NOT_FOUND, id));
 
         log.info("{} page ID: {} (code: {})", active ? "Reactivating" : "Deactivating", id, page.getPageCode());
@@ -368,46 +346,41 @@ public class PageService {
         return ServiceResult.success(toResponse(updated, permissionKeys), Status.UPDATED);
     }
 
-    /**
-     * Delete a Page (hard delete - NOT RECOMMENDED)
-     * 
-     * ⚠️ WARNING: Hard delete permanently removes the page.
     // ==============================
     // Helper Methods
     // ==============================
 
     /**
      * Create Permission RECORDS in database for a page
-     * 
+     *
      * ====================================================
      * CRITICAL DISTINCTION
      * ====================================================
-     * 
+     *
      * This method creates Permission RECORDS (definitions) in PERMISSIONS table:
      * - PERM_<CODE>_VIEW
      * - PERM_<CODE>_CREATE
      * - PERM_<CODE>_UPDATE
      * - PERM_<CODE>_DELETE
-     * 
-     * ⚠️ IMPORTANT: This method does NOT:
+     *
+     * This method does NOT:
      * - Assign these permissions to any Role
      * - Grant access to any User
      * - Link permissions to Role-Permission join table
-     * 
+     *
      * Permission ASSIGNMENT to Roles happens ONLY in RoleAccessService:
      * - RoleAccessService.addPageToRole() assigns VIEW + selected CRUD permissions to a Role
      * - VIEW is ALWAYS assigned (implicit, mandatory)
      * - CREATE/UPDATE/DELETE are assigned ONLY if user explicitly selects them
-     * 
+     *
      * This separation ensures:
      * 1) Pages Registry manages UI screen definitions
      * 2) RoleAccessService manages access control (who can do what)
-     * 
+     *
      * @param page The Page entity to link permissions to
-     * @param tenantId Tenant ID for multi-tenancy isolation
      * @return Map of permission type -> permission key (e.g., "VIEW" -> "PERM_USER_VIEW")
      */
-    private Map<String, String> createPermissionRecords(Page page, String tenantId) {
+    private Map<String, String> createPermissionRecords(Page page) {
         Map<String, String> permissionKeys = new LinkedHashMap<>();
         String pageCode = page.getPageCode();
 
@@ -416,13 +389,12 @@ public class PageService {
             permissionKeys.put(type.name(), permKey);
 
             // Check if permission already exists
-            Optional<Permission> existing = permissionRepository.findByNameAndTenantId(permKey, tenantId);
+            Optional<Permission> existing = permissionRepository.findByName(permKey);
 
             if (existing.isEmpty()) {
                 // Create new permission RECORD linked to the page
                 Permission newPerm = Permission.builder()
                         .name(permKey)
-                        .tenantId(tenantId)
                         .page(page)                    // Link to Page via FK
                         .permissionType(type)          // Store type for efficient queries
                         .build();
@@ -447,10 +419,10 @@ public class PageService {
 
     /**
      * Build permission keys map for a given pageCode
-     * 
+     *
      * Returns reference keys without creating or modifying any database records.
      * Used for displaying permission keys in UI responses.
-     * 
+     *
      * @param pageCode Page code
      * @return Map of permission type -> permission key
      */

@@ -58,7 +58,6 @@ public final class SecurityErrorCodes {
     public static final String REFRESH_EXPIRED_OR_REVOKED = "REFRESH_EXPIRED_OR_REVOKED";
 
     // ==================== Tenant Errors ====================
-    public static final String MISSING_TENANT = "MISSING_TENANT";
 
     // ==================== General Operation Errors ====================
     public static final String INVALID_OPERATION = "INVALID_OPERATION";

@@ -3,7 +3,6 @@ package com.example.security.service;
 import com.example.erp.common.domain.status.ServiceResult;
 import com.example.erp.common.domain.status.Status;
 import com.example.erp.common.exception.LocalizedException;
-import com.example.erp.common.multitenancy.TenantHelper;
 import com.example.security.constants.SecurityPermissions;
 import com.example.security.domain.Page;
 import com.example.security.domain.Permission;
@@ -25,10 +24,10 @@ import java.util.stream.Collectors;
 
 /**
  * Service for managing Role-Page assignments and permissions
- * 
+ *
  * Governance: BE-REQ-ROLEACCESS-001
  * Contract: role-access.contract.md
- * 
+ *
  * Core Rules:
  * 1. Role is MASTER, Pages are DETAIL
  * 2. VIEW permission is ALWAYS added when a Page is assigned to a Role
@@ -48,20 +47,18 @@ public class RoleAccessService {
     /**
      * GET /api/roles/{roleId}/pages
      * Get all pages assigned to a role with their CRUD permission flags
-     * 
+     *
      * Contract: role-access.contract.md - Endpoint 6
      * Returns: RolePagesMatrixResponse with assignments (VIEW excluded from permissions array)
      */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).ROLE_VIEW)")
     public ServiceResult<RolePagesMatrixResponse> getRolePages(Long roleId) {
-        String tenantId = TenantHelper.requireTenant();
-
         // Fetch role with permissions
-        Role role = roleRepository.findByIdWithPermissions(roleId, tenantId)
+        Role role = roleRepository.findByIdWithPermissions(roleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, roleId));
 
-        List<PageAssignmentResponse> assignments = buildPageAssignments(role, tenantId);
+        List<PageAssignmentResponse> assignments = buildPageAssignments(role);
 
         return ServiceResult.success(RolePagesMatrixResponse.builder()
                 .roleId(role.getId())
@@ -74,25 +71,23 @@ public class RoleAccessService {
      * POST /api/roles/{roleId}/pages
      * Add a Page to a Role with specific CRUD permissions
      * VIEW permission is ALWAYS added automatically
-     * 
+     *
      * Contract: role-access.contract.md - Endpoint 7
      * Returns: PageAssignmentResponse (201 Created)
      */
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).ROLE_UPDATE)")
     public ServiceResult<PageAssignmentResponse> addPageToRole(Long roleId, AddPageToRoleRequest request) {
-        String tenantId = TenantHelper.requireTenant();
-
         // Normalize pageCode
         String pageCode = request.getPageCode().toUpperCase().trim();
         log.info("Adding page '{}' to role ID: {}", pageCode, roleId);
 
         // Fetch role with permissions
-        Role role = roleRepository.findByIdWithPermissions(roleId, tenantId)
+        Role role = roleRepository.findByIdWithPermissions(roleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, roleId));
 
         // Verify page exists
-        Page page = pageRepository.findByPageCodeAndTenantId(pageCode, tenantId)
+        Page page = pageRepository.findByPageCode(pageCode)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PAGE_NOT_FOUND_BY_CODE, pageCode));
 
         // Check for duplicate assignment (page already assigned to role)
@@ -122,13 +117,13 @@ public class RoleAccessService {
         }
 
         // Resolve permissions by page FK + type to avoid hard dependency on name conventions.
-        List<Permission> permissions = resolvePagePermissions(page, requiredTypes, tenantId);
+        List<Permission> permissions = resolvePagePermissions(page, requiredTypes);
 
         // Add permissions to role
         role.getPermissions().addAll(permissions);
         roleRepository.save(role);
 
-        log.info("Added page '{}' to role '{}' with permissions: {}", 
+        log.info("Added page '{}' to role '{}' with permissions: {}",
                 pageCode, role.getRoleName(), validCrudPermissions);
 
         // Build response (VIEW excluded per contract)
@@ -143,10 +138,10 @@ public class RoleAccessService {
     /**
      * PUT /api/roles/{roleId}/pages
      * SYNC MODE: Replace all page assignments for a role (FULL REPLACE)
-     * 
+     *
      * Contract: role-access.contract.md - Endpoint 8
      * Returns: RolePagesMatrixResponse
-     * 
+     *
      * Rules:
      * - Every listed page MUST keep VIEW (auto-added)
      * - CRUD permissions must match exactly the request
@@ -155,12 +150,10 @@ public class RoleAccessService {
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).ROLE_UPDATE)")
     public ServiceResult<RolePagesMatrixResponse> syncRolePages(Long roleId, SyncRolePagesRequest request) {
-        String tenantId = TenantHelper.requireTenant();
-
         log.info("Syncing pages for role ID: {} with {} assignments", roleId, request.getAssignments().size());
 
         // Fetch role with permissions
-        Role role = roleRepository.findByIdWithPermissions(roleId, tenantId)
+        Role role = roleRepository.findByIdWithPermissions(roleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, roleId));
 
         // Build target permission set by page FK + type
@@ -170,7 +163,7 @@ public class RoleAccessService {
             String pageCode = assignment.getPageCode().toUpperCase().trim();
 
             // Verify page exists
-            Page page = pageRepository.findByPageCodeAndTenantId(pageCode, tenantId)
+            Page page = pageRepository.findByPageCode(pageCode)
                     .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.PAGE_NOT_FOUND_BY_CODE, pageCode));
 
             EnumSet<PermissionType> requiredTypes = EnumSet.of(PermissionType.VIEW);
@@ -185,7 +178,7 @@ public class RoleAccessService {
                 requiredTypes.add(type);
             }
 
-            targetPermissionSet.addAll(resolvePagePermissions(page, requiredTypes, tenantId));
+            targetPermissionSet.addAll(resolvePagePermissions(page, requiredTypes));
         }
 
         List<Permission> targetPermissions = new ArrayList<>(targetPermissionSet);
@@ -207,8 +200,8 @@ public class RoleAccessService {
                 role.getRoleName(), currentPagePermissions.size(), targetPermissions.size());
 
         // Build response
-        List<PageAssignmentResponse> assignments = buildPageAssignments(role, tenantId);
-        
+        List<PageAssignmentResponse> assignments = buildPageAssignments(role);
+
         return ServiceResult.success(RolePagesMatrixResponse.builder()
                 .roleId(role.getId())
                 .roleName(role.getRoleName())
@@ -216,8 +209,8 @@ public class RoleAccessService {
                 .build(), Status.UPDATED);
     }
 
-    private List<Permission> resolvePagePermissions(Page page, EnumSet<PermissionType> requiredTypes, String tenantId) {
-        List<Permission> pagePermissions = permissionRepository.findByPageIdAndTenantId(page.getId(), tenantId);
+    private List<Permission> resolvePagePermissions(Page page, EnumSet<PermissionType> requiredTypes) {
+        List<Permission> pagePermissions = permissionRepository.findByPage_Id(page.getId());
 
         Map<PermissionType, Permission> byType = new EnumMap<>(PermissionType.class);
         for (Permission permission : pagePermissions) {
@@ -241,21 +234,19 @@ public class RoleAccessService {
      * DELETE /api/roles/{roleId}/pages/{pageCode}
      * Remove a Page from a Role completely
      * Removes VIEW + CREATE + UPDATE + DELETE for that page
-     * 
+     *
      * Contract: role-access.contract.md - Endpoint 9
      * Returns: void (204 No Content)
      */
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).ROLE_UPDATE)")
     public void removePageFromRole(Long roleId, String pageCode) {
-        String tenantId = TenantHelper.requireTenant();
-
         // Normalize pageCode
         pageCode = pageCode.toUpperCase().trim();
         log.info("Removing page '{}' from role ID: {}", pageCode, roleId);
 
         // Fetch role with permissions
-        Role role = roleRepository.findByIdWithPermissions(roleId, tenantId)
+        Role role = roleRepository.findByIdWithPermissions(roleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, roleId));
 
         // Build permission keys to remove (all 4: VIEW + CRUD)
@@ -288,15 +279,13 @@ public class RoleAccessService {
      * Copy all pages and CRUD permissions from source role to target role
      * VIEW is auto-added for all pages
      * Replaces ALL existing assignments in target role
-     * 
+     *
      * Contract: role-access.contract.md - Endpoint 10
      * Returns: CopyPermissionsResponse
      */
     @Transactional
     @PreAuthorize("hasAuthority(T(com.example.security.constants.SecurityPermissions).ROLE_UPDATE)")
     public ServiceResult<CopyPermissionsResponse> copyPermissionsFromRole(Long targetRoleId, Long sourceRoleId) {
-        String tenantId = TenantHelper.requireTenant();
-
         log.info("Copying permissions from role ID: {} to role ID: {}", sourceRoleId, targetRoleId);
 
         if (targetRoleId.equals(sourceRoleId)) {
@@ -304,10 +293,10 @@ public class RoleAccessService {
         }
 
         // Fetch both roles with permissions
-        Role targetRole = roleRepository.findByIdWithPermissions(targetRoleId, tenantId)
+        Role targetRole = roleRepository.findByIdWithPermissions(targetRoleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, targetRoleId));
 
-        Role sourceRole = roleRepository.findByIdWithPermissions(sourceRoleId, tenantId)
+        Role sourceRole = roleRepository.findByIdWithPermissions(sourceRoleId)
                 .orElseThrow(() -> new LocalizedException(Status.NOT_FOUND, SecurityErrorCodes.ROLE_NOT_FOUND, sourceRoleId));
 
         // Get all page-related permissions from source role
@@ -332,8 +321,8 @@ public class RoleAccessService {
                 currentTargetPagePermissions.size());
 
         // Build response
-        List<PageAssignmentResponse> assignments = buildPageAssignments(targetRole, tenantId);
-        
+        List<PageAssignmentResponse> assignments = buildPageAssignments(targetRole);
+
         return ServiceResult.success(CopyPermissionsResponse.builder()
                 .roleId(targetRole.getId())
                 .roleName(targetRole.getRoleName())
@@ -348,11 +337,11 @@ public class RoleAccessService {
     /**
      * Helper method to build page assignments from role permissions
      * Excludes VIEW from permissions array per contract
-     * 
+     *
      * OPTIMIZED: Uses PAGE_ID_FK foreign key for direct JOIN - no string parsing!
      * Performance: Single query with JOIN instead of regex parsing + batch load
      */
-    private List<PageAssignmentResponse> buildPageAssignments(Role role, String tenantId) {
+    private List<PageAssignmentResponse> buildPageAssignments(Role role) {
         // Group permissions by page - using the direct FK relationship
         Map<Long, Page> pageMap = new HashMap<>();
         Map<Long, EnumSet<PermissionType>> pagePermissionTypes = new HashMap<>();
@@ -378,7 +367,7 @@ public class RoleAccessService {
 
         // Build response DTOs - only for pages that have VIEW permission (assigned)
         List<PageAssignmentResponse> result = new ArrayList<>(pageMap.size());
-        
+
         for (Map.Entry<Long, Page> entry : pageMap.entrySet()) {
             Long pageId = entry.getKey();
             Page page = entry.getValue();
@@ -405,7 +394,7 @@ public class RoleAccessService {
 
         // Sort by page code for consistent ordering
         result.sort(Comparator.comparing(PageAssignmentResponse::getPageCode));
-        
+
         return result;
     }
 }

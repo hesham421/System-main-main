@@ -29,9 +29,6 @@ public final class CommonErrorCodes {
     public static final String SEARCH_FIELD_NOT_ALLOWED = "SEARCH_FIELD_NOT_ALLOWED";
     public static final String SEARCH_INVALID_OPERATOR = "SEARCH_INVALID_OPERATOR";
 
-    // ==================== Tenant Errors ====================
-    public static final String MISSING_TENANT = "MISSING_TENANT";
-
     // ==================== Access Errors ====================
     public static final String ACCESS_DENIED = "ACCESS_DENIED";
 

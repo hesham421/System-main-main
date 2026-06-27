@@ -1,7 +1,6 @@
 package com.example.security.repo;
 
 import com.example.security.domain.Permission;
-import com.example.security.dto.PermissionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,33 +14,26 @@ import java.util.Set;
 
 public interface PermissionRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
 
-    Optional<Permission> findByNameAndTenantId(String name, String tenantId);
+    Optional<Permission> findByName(String name);
 
-    boolean existsByNameAndTenantId(String name, String tenantId);
-
-    List<Permission> findAllByTenantId(String tenantId);
-
-    Page<Permission> findAllByTenantId(String tenantId, Pageable pageable);
-
-    long deleteByIdAndTenantId(Long id, String tenantId);
+    boolean existsByName(String name);
 
     /**
-     * Find all permissions by names and tenant
+     * Find all permissions by names
      */
-    List<Permission> findByNameInAndTenantId(List<String> names, String tenantId);
+    List<Permission> findByNameIn(List<String> names);
 
     /**
-     * Find all permissions for a specific page
+     * Find all permissions for a specific page (using Spring Data property traversal)
      */
-    List<Permission> findByPageIdAndTenantId(Long pageId, String tenantId);
+    List<Permission> findByPage_Id(Long pageId);
 
     /**
      * Find VIEW permissions for a set of page IDs (to check which pages are assigned to roles)
      */
-    @Query("SELECT p FROM Permission p WHERE p.tenantId = :tenantId " +
-           "AND p.page.id IN :pageIds AND p.permissionType = 'VIEW'")
+    @Query("SELECT p FROM Permission p WHERE " +
+           "p.page.id IN :pageIds AND p.permissionType = 'VIEW'")
     List<Permission> findViewPermissionsByPageIds(
-        @Param("tenantId") String tenantId,
         @Param("pageIds") Set<Long> pageIds
     );
 
@@ -52,11 +44,9 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
     @Query("SELECT DISTINCT p FROM Permission p " +
            "JOIN FETCH p.page pg " +
            "JOIN p.id pId " +
-           "WHERE p.tenantId = :tenantId " +
-           "AND p.page IS NOT NULL " +
+           "WHERE p.page IS NOT NULL " +
            "AND p.id IN :permissionIds")
     List<Permission> findPagePermissionsWithPagesByIds(
-        @Param("tenantId") String tenantId,
         @Param("permissionIds") Set<Long> permissionIds
     );
 }

@@ -16,8 +16,7 @@ import java.time.Instant;
 /**
  * Base entity providing standard audit fields via {@link AuditEntityListener}.
  * <p>
- * Use this for all business entities that do NOT need multi-tenancy.
- * For tenant-scoped entities (erp-security only), extend {@link TenantAuditableEntity} instead.
+ * Use this for all business entities.
  * <p>
  * Audit fields populated automatically by {@link AuditEntityListener}:
  * <ul>

@@ -362,7 +362,6 @@ export class UserFacade {
     const fieldMap: Record<string, string> = {
       'id': 'id',
       'username': 'username',
-      'tenantId': 'tenantId',
       'enabled': 'enabled'
     };
 

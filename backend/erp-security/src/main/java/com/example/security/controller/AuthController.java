@@ -27,9 +27,8 @@ public class AuthController {
         description = "Authenticates user and returns JWT access token. Use this token in the Authorize button above."
     )
     public AuthResponse login(@RequestBody @Valid AuthRequest req,
-                              HttpServletRequest request,
                               HttpServletResponse response){
-        var t = authService.login(req.username(), req.password(), request, response);
+        var t = authService.login(req.username(), req.password(), response);
         return new AuthResponse(t.access(), 900);
     }
 
@@ -39,9 +38,8 @@ public class AuthController {
         description = "Authenticates user and returns access token, refresh token, and complete user information including roles and permissions"
     )
     public UserInfo loginWithToken(@RequestBody @Valid AuthRequest req,
-                                    HttpServletRequest request,
                                     HttpServletResponse response){
-        return authService.loginWithUserInfo(req.username(), req.password(), request, response);
+        return authService.loginWithUserInfo(req.username(), req.password(), response);
     }
 
     @PostMapping("/refresh")

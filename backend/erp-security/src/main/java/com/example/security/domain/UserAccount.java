@@ -1,7 +1,7 @@
 package com.example.security.domain;
 
 import com.example.erp.common.converter.BooleanNumberConverter;
-import com.example.erp.common.domain.TenantAuditableEntity;
+import com.example.erp.common.domain.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -10,14 +10,13 @@ import java.util.Set;
 
 @Entity
 @Table(name = "USERS",
-       uniqueConstraints = {@UniqueConstraint(name="UK_USERS_TENANT_USERNAME", columnNames={"TENANT_ID","USERNAME"})},
+       uniqueConstraints = {@UniqueConstraint(name="UK_USERS_USERNAME", columnNames={"USERNAME"})},
        indexes = {
-           @Index(name = "IDX_USERS_TENANT", columnList = "TENANT_ID"),
        @Index(name = "IDX_USERS_ENABLED", columnList = "ENABLED"),
        @Index(name = "IDX_USERS_USERNAME", columnList = "USERNAME")
        })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
-public class UserAccount extends TenantAuditableEntity {
+public class UserAccount extends AuditableEntity {
 
     @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,7 +1,7 @@
 package com.example.security.domain;
 
 import com.example.erp.common.converter.BooleanNumberConverter;
-import com.example.erp.common.domain.TenantAuditableEntity;
+import com.example.erp.common.domain.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -9,22 +9,22 @@ import lombok.experimental.SuperBuilder;
 /**
  * Page Entity - Represents UI screens/pages in the system
  * Each Page auto-generates 4 CRUD permissions: VIEW, CREATE, UPDATE, DELETE
- * 
+ *
  * Pages are the DETAIL in the RBAC model, with Roles as MASTER.
  * A Role is assigned Pages, and each Page assignment automatically includes VIEW permission.
  */
 @Entity
 @Table(name = "SEC_PAGES",
        uniqueConstraints = {
-           @UniqueConstraint(name = "UK_PAGES_TENANT_CODE", columnNames = {"TENANT_ID", "PAGE_CODE"}),
-           @UniqueConstraint(name = "UK_PAGES_TENANT_ROUTE", columnNames = {"TENANT_ID", "ROUTE"})
+           @UniqueConstraint(name = "UK_PAGES_CODE", columnNames = {"PAGE_CODE"}),
+           @UniqueConstraint(name = "UK_PAGES_ROUTE", columnNames = {"ROUTE"})
        },
        indexes = {
            @Index(name = "IDX_PAGES_MODULE", columnList = "MODULE"),
            @Index(name = "IDX_PAGES_ACTIVE", columnList = "IS_ACTIVE")
        })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
-public class Page extends TenantAuditableEntity {
+public class Page extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "page_seq")

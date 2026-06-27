@@ -1,7 +1,7 @@
 package com.example.security.domain;
 
 import com.example.erp.common.converter.BooleanNumberConverter;
-import com.example.erp.common.domain.TenantAuditableEntity;
+import com.example.erp.common.domain.AuditableEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,24 +11,23 @@ import java.util.Set;
 
 /**
  * Role Entity - Represents system roles for RBAC
- * 
+ *
  * Governance: BE-REQ-ROLEACCESS-001
  * Contract: role-access.contract.md
- * 
+ *
  * Roles are the MASTER in the Role-Pages relationship.
  * Each Role can be assigned multiple Pages with VIEW + optional CRUD permissions.
  */
 @Entity
 @Table(name = "ROLES",
        uniqueConstraints = {
-           @UniqueConstraint(name = "UK_ROLES_TENANT_NAME", columnNames = {"TENANT_ID", "NAME"})
+           @UniqueConstraint(name = "UK_ROLES_NAME", columnNames = {"NAME"})
        },
        indexes = {
-           @Index(name = "IDX_ROLES_TENANT", columnList = "TENANT_ID"),
            @Index(name = "IDX_ROLES_IS_ACTIVE", columnList = "IS_ACTIVE")
        })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
-public class Role extends TenantAuditableEntity {
+public class Role extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,7 +47,7 @@ public class Role extends TenantAuditableEntity {
 
     /**
      * Active status flag.
-     * 
+     *
      * Database: IS_ACTIVE NUMBER(1) - 1=Active, 0=Inactive
      * Java: Boolean - true/false/null
      */
