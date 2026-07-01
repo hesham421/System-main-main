@@ -14,6 +14,7 @@
 cd deploy
 cp .env.example .env
 # edit .env with real values
+# Ensure backend/ and frontend/ repos are checked out as siblings of deploy/
 docker compose --env-file .env up -d --build
 ```
 
@@ -41,20 +42,34 @@ Spring Boot (:7272)
 ## Git-Based Deployment
 
 ```bash
+# Push changes in the relevant repository (backend, frontend, or deploy)
 git push
-ssh user@server 'bash ~/System/deploy/deploy.sh'
+ssh user@server 'bash ~/deploy/deploy.sh'
 ```
 
-The deploy script pulls the latest code, rebuilds both images, restarts the stack, and checks the backend health endpoint.
+The deploy script pulls the latest code from each split repository (backend, frontend, deploy),
+rebuilds both images, restarts the stack, and checks the backend health endpoint.
+
+Repositories must be checked out as siblings under the same parent directory:
+```
+~/
+  backend/
+  frontend/
+  deploy/
+```
 
 Use `--env-file .env` when running compose so `deploy/.env` is the source of truth for variable substitution without injecting unrelated keys into the containers.
 
 ## Individual Container Builds
 
 ```bash
-# project root
-docker build -f deploy/backend/Dockerfile -t erp-backend .
-docker build -f deploy/frontend/Dockerfile -t erp-frontend .
+# Build backend image (from backend/ repo root)
+cd ../backend
+docker build -t erp-backend .
+
+# Build frontend image (from frontend/ repo root)
+cd ../frontend
+docker build -t erp-frontend .
 ```
 
 ## Verification and Logs

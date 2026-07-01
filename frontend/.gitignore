@@ -40,3 +40,9 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Environment secrets — never commit the real .env
+.env
+
+# Docker overrides
+docker-compose.override.yml

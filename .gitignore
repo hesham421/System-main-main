@@ -10,49 +10,22 @@ Desktop.ini
 **/.vscode/
 *.iml
 
-# Node / Angular
-**/node_modules/
-frontend/.angular/
-frontend/dist/
-frontend/coverage/
-frontend/test-results/
+# This workspace root is not a deployable project.
+# Each subdirectory (backend/, frontend/, governance-repo/, deploy/)
+# is its own repository with its own .gitignore.
+#
+# Rules below protect the root workspace from common accidental commits.
 
-# Java / Maven / Spring Boot
-**/target/
-**/out/
-*.class
-*.jar
-*.war
-*.ear
+# Secrets
+.env
+*.env
 
-# Logs and runtime output
+# Logs
 *.log
 *.log.*
-logs/
-backend/logs/
-backend/startup.log
-backend/test-output.txt
-backend/test-run-output.txt
 
-
-# Docker archives and temp artifacts
-*.tar
+# Docker overrides
 docker-compose.override.yml
 
-# Local tool output
-backend/.github/java-upgrade/
-backend/erp-security/cp.txt
-backend/erp-security/temp-log.txt
+# Postman local environment
 ERP-Local.postman_environment.json
-
-# Playwright
-node_modules/
-/test-results/
-.playwright-mcp/
-
-# Documentation and database migration files
-
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/

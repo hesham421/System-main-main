@@ -25,6 +25,7 @@ Stages:
 import argparse
 import json
 import sys
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from pathlib import Path
 from datetime import datetime
 
@@ -228,6 +229,28 @@ def stage1_parse_and_plan(mod: str, version: int, state: dict, base: Path = None
             extra = f", {sub_count} sub-section(s)" if sub_count else " (no SUB — below threshold)"
             print(f"      - MARK:{m.marker_id:<12} → {tc_count} TC(s){extra}")
         print(f"    Total TC atomic files : {len(tcs)}")
+
+        # Detect orphan TCs: inside a MARK that HAS subs, but not inside any sub
+        orphan_warnings = []
+        for m in marks:
+            sub_blocks = [c for c in m.children if c.kind == "sub"]
+            if not sub_blocks:
+                continue  # no SUBs -> all TCs go directly under MARK (acceptable)
+            tcs_in_subs = {t.marker_id for sub in sub_blocks for t in flatten([sub]) if t.kind == "tc"}
+            all_tcs_in_mark = [t for t in flatten([m]) if t.kind == "tc"]
+            orphans = [t for t in all_tcs_in_mark if t.marker_id not in tcs_in_subs]
+            if orphans:
+                orphan_warnings.append((m.marker_id, orphans))
+
+        if orphan_warnings:
+            print()
+            print("  ⚠ WARNING — Orphan TCs (inside MARK but outside any SUB block):")
+            print("    Stage 3 will NOT write these TCs to any package file.")
+            print("    Wrap them in <!-- SUB:...:START/END --> before continuing.")
+            for mark_id, orphans in orphan_warnings:
+                ids = ", ".join(t.marker_id for t in orphans)
+                print(f"    MARK:{mark_id} → {len(orphans)} orphan TC(s): {ids}")
+            print()
 
         plan["test_summary"] = {
             "marks": len(marks), "tcs": len(tcs), "subs": len(subs_t),

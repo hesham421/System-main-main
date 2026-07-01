@@ -20,8 +20,8 @@ services:
   # ============================================
   backend:
     build:
-      context: ..
-      dockerfile: deploy/backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: erp-backend
     network_mode: host
     depends_on:
@@ -51,8 +51,8 @@ services:
   # ============================================
   frontend:
     build:
-      context: ..
-      dockerfile: deploy/frontend/Dockerfile
+      context: ../frontend
+      dockerfile: Dockerfile
     container_name: erp-frontend
     network_mode: host
     depends_on:
